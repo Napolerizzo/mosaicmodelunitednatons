@@ -275,13 +275,36 @@ const css = `
 
 /* Mobile */
 @media (max-width: 768px) {
-  .auth-photo { display: none; }
+  .auth-photo {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    z-index: 0;
+  }
+  .auth-photo-img {
+    filter: sepia(0.65) saturate(0.45) brightness(0.26);
+  }
+  .auth-photo-veil {
+    background:
+      linear-gradient(to bottom,
+        rgba(0,0,0,0.42) 0%,
+        rgba(0,0,0,0.68) 45%,
+        rgba(0,0,0,0.91) 100%);
+  }
+  .auth-photo-content { display: none; }
   .auth-form-panel {
     border-left: none;
     padding: 40px 24px;
     min-height: 100vh;
     align-items: flex-start;
     padding-top: 60px;
+    position: relative;
+    z-index: 1;
+    background: transparent;
+  }
+  .auth-input {
+    border-bottom-color: rgba(155,110,9,0.28);
   }
   .auth-back { margin-bottom: 40px; }
   .auth-title { font-size: clamp(2.4rem, 10vw, 3rem); }

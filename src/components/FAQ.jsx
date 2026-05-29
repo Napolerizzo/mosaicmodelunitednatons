@@ -233,8 +233,41 @@ const css = `
 
 /* Section header mobile */
 @media (max-width: 900px) {
-  .briefing-hdr { padding: 0 24px 52px; }
+  .briefing { padding: 72px 0 88px; }
+  .briefing-hdr { padding: 0 20px 44px; }
   .briefing-title { font-size: clamp(2.6rem, 13vw, 4rem); }
+
+  .be-row {
+    padding: 26px 20px;
+    column-gap: 16px;
+  }
+
+  .be-num {
+    font-size: 1.6rem;
+    opacity: 0.25;
+  }
+
+  .be-question {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .be-answer {
+    font-size: 13px;
+    line-height: 1.92;
+  }
+
+  .be-answer-inner {
+    padding-top: 14px;
+    padding-left: 14px;
+    border-left-color: rgba(155,110,9,0.22);
+  }
+
+  .be-cue-bar { width: 14px; }
+  .be.be-open .be-cue-bar { width: 22px; }
+
+  .be-cue-label { font-size: 7px; letter-spacing: 0.36em; }
 }
 `
 

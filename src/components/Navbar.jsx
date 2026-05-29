@@ -158,6 +158,11 @@ const css = `
 }
 .nav-user-exit:hover { opacity: 1; }
 
+/* Mobile signed-in initial */
+.nav-mobile-user {
+  display: none;
+}
+
 /* ── Hamburger ── */
 .hamburger {
   display: none;
@@ -366,6 +371,21 @@ const css = `
   .nav.scrolled { padding: 10px 20px; }
   .nav-links-list, .nav-cta, .nav-user-area { display: none; }
   .hamburger { display: flex; }
+  .nav-mobile-user {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(155,110,9,0.4);
+    font-family: 'Poppins', sans-serif;
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
 }
 `
 
@@ -453,6 +473,12 @@ export default function Navbar() {
             </button>
           )}
         </div>
+
+        {user && (
+          <span className="nav-mobile-user" aria-hidden="true">
+            {firstName.charAt(0)}
+          </span>
+        )}
 
         <button
           className={`hamburger${menuOpen ? ' open' : ''}`}

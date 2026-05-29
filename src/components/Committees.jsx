@@ -385,42 +385,74 @@ const css = `
 
 /* ── Mobile ── */
 @media (max-width: 900px) {
-  .casefiles-hdr { padding: 0 24px 52px; }
+  .casefiles { padding: 72px 0 90px; }
+  .casefiles-hdr { padding: 0 20px 44px; }
   .casefiles-title { font-size: clamp(2.6rem, 13vw, 4rem); }
 
   .cf-header {
-    padding: 22px 24px;
-    grid-template-columns: 52px 1fr 28px;
-    grid-template-rows: auto auto;
-    row-gap: 4px;
-    column-gap: 12px;
+    padding: 26px 20px;
+    grid-template-columns: 44px 1fr 28px;
+    grid-template-rows: auto auto auto;
+    row-gap: 0;
+    column-gap: 14px;
   }
 
-  .cf-file-label { grid-column: 1; grid-row: 1 / 3; align-self: center; }
-  .cf-abbr { grid-column: 2; grid-row: 1; }
-  .cf-hook { grid-column: 2; grid-row: 2; padding-right: 0; font-size: 0.85rem; }
-  .cf-difficulty { display: none; }
-  .cf-indicator { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+  .cf-file-label {
+    grid-column: 1; grid-row: 1 / 4;
+    align-self: center;
+    font-size: 7px;
+    letter-spacing: 0.4em;
+  }
+  .cf-abbr {
+    grid-column: 2; grid-row: 1;
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+  }
+  .cf-hook {
+    grid-column: 2; grid-row: 2;
+    padding-right: 0;
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+  }
+  .cf-difficulty {
+    display: block;
+    grid-column: 2; grid-row: 3;
+    font-size: 7px;
+    letter-spacing: 0.32em;
+    text-align: left;
+    opacity: 0.35;
+  }
+  .cf-indicator { grid-column: 3; grid-row: 1 / 4; align-self: center; }
   .cf-ghost-num { display: none; }
 
-  .cf-dossier-inner { padding: 0 24px 36px; }
+  .cf-dossier-inner { padding: 0 20px 40px; }
+  .cf-gold-line { margin-bottom: 28px; }
 
   .cf-dossier-grid {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 32px;
   }
 
   .cf-logo-col {
     flex-direction: row;
-    align-items: center;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 18px;
   }
 
   .cf-logo-frame {
-    width: 72px;
+    width: 80px;
     flex-shrink: 0;
-    padding: 12px;
+    padding: 14px;
   }
+
+  .cf-logo-agenda { font-size: 10px; line-height: 1.75; }
+
+  .cf-body-text {
+    font-size: 13px;
+    line-height: 1.88;
+  }
+
+  .cf-section-label { letter-spacing: 0.36em; }
 }
 `
 
