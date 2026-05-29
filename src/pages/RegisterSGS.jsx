@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import QRCode from 'react-qr-code'
@@ -112,9 +112,9 @@ const css = `
 .rf-step-sub {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
-  font-size: 1rem;
-  color: var(--muted);
-  opacity: 0.58;
+  font-size: 1.1rem;
+  color: #c8bba0;
+  opacity: 0.88;
   margin: 0 0 44px;
 }
 
@@ -446,6 +446,219 @@ const css = `
   .rf-pass { max-width: 100%; }
   .rf-credential-wrap { padding: 36px 20px 56px; }
 }
+
+/* ── Topbar logo ── */
+.rf-topbar-logo {
+  height: 24px;
+  width: auto;
+  opacity: 0.82;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ── Background photo shards ── */
+.rf-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.rf-bg-shard {
+  position: absolute;
+  overflow: hidden;
+}
+.rf-bg-shard-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.5) saturate(0.35) brightness(0.12);
+}
+.rf-bg-shard-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(155,110,9,0.08) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.55) 100%);
+  z-index: 2;
+}
+
+/* ── Steps strip ── */
+.rf-steps-strip {
+  display: flex;
+  align-items: center;
+  margin-bottom: 42px;
+  max-width: 580px;
+  width: 100%;
+}
+.rf-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  opacity: 0.28;
+  transition: opacity 0.35s, color 0.35s;
+  flex-shrink: 0;
+}
+.rf-step-item.active {
+  color: var(--gold);
+  opacity: 1;
+}
+.rf-step-item.done {
+  color: var(--gold);
+  opacity: 0.45;
+}
+.rf-step-num {
+  width: 20px; height: 20px;
+  border: 1px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: background 0.3s, color 0.3s;
+}
+.rf-step-item.active .rf-step-num {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+}
+.rf-step-item.done .rf-step-num {
+  background: rgba(155,110,9,0.14);
+}
+.rf-step-name {
+  font-size: 7px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  font-family: 'Poppins', sans-serif;
+}
+.rf-step-connector {
+  flex: 1;
+  height: 1px;
+  background: rgba(155,110,9,0.15);
+  margin: 0 10px;
+  min-width: 16px;
+  max-width: 36px;
+}
+
+/* ── ToS checkbox ── */
+.rf-tos-wrap {
+  margin-bottom: 28px;
+  padding: 18px 20px;
+  border: 1px solid rgba(155,110,9,0.12);
+  background: rgba(155,110,9,0.018);
+}
+.rf-tos-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.rf-tos-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+  pointer-events: none;
+}
+.rf-tos-box {
+  flex-shrink: 0;
+  width: 14px; height: 14px;
+  border: 1px solid rgba(155,110,9,0.4);
+  position: relative;
+  transition: border-color 0.25s, background 0.25s;
+  margin-top: 1px;
+}
+.rf-tos-box.checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.rf-tos-box.checked::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 0px;
+  width: 6px; height: 9px;
+  border-right: 1.5px solid #000;
+  border-bottom: 1.5px solid #000;
+  transform: rotate(45deg);
+}
+.rf-tos-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 9.5px;
+  line-height: 1.75;
+  color: #a89878;
+  letter-spacing: 0.02em;
+}
+.rf-tos-text a {
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(155,110,9,0.35);
+  opacity: 0.85;
+}
+
+/* ── Page footer ── */
+.rf-page-footer {
+  position: relative;
+  z-index: 5;
+  border-top: 1px solid rgba(155,110,9,0.07);
+  padding: 20px 8vw 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: rgba(5,4,2,0.55);
+}
+.rf-page-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rf-page-footer-logo {
+  height: 22px;
+  width: auto;
+  opacity: 0.55;
+}
+.rf-page-footer-info { display: flex; flex-direction: column; gap: 2px; }
+.rf-page-footer-name {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream);
+  opacity: 0.55;
+}
+.rf-page-footer-meta {
+  font-size: 7.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.38;
+  font-family: 'Poppins', sans-serif;
+}
+.rf-page-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rf-page-footer-link {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.4;
+  text-decoration: none;
+  transition: opacity 0.2s, color 0.2s;
+  font-family: 'Poppins', sans-serif;
+}
+.rf-page-footer-link:hover { opacity: 0.78; color: var(--gold); }
+.rf-page-footer-sep { color: var(--muted); opacity: 0.2; font-size: 8px; }
+
+@media (max-width: 768px) {
+  .rf-topbar-logo { height: 20px; }
+  .rf-steps-strip { overflow-x: auto; padding-bottom: 4px; }
+  .rf-page-footer { padding: 16px 20px 14px; flex-direction: column; align-items: flex-start; gap: 12px; }
+}
 `
 
 const SLIDE = {
@@ -468,6 +681,7 @@ export default function RegisterSGS() {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [registration, setRegistration] = useState(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const [form, setForm] = useState({
     full_name: '', class_year: '',
@@ -557,11 +771,28 @@ export default function RegisterSGS() {
 
   return (
     <div className="rf-page">
+      {/* Background shards */}
+      <div className="rf-bg-layer" aria-hidden="true">
+        <div className="rf-bg-shard" style={{ left:'62%', top:'4%', width:'28%', height:'64%', clipPath:'polygon(40% 0%, 100% 18%, 62% 100%, 0% 82%)', opacity:0.52 }}>
+          <img className="rf-bg-shard-img" src="/brand-assets/4AA719A1-A4D2-4877-916F-9322FE10EBD6_4_5005_c.jpeg" alt="" />
+          <div className="rf-bg-shard-tint" />
+        </div>
+        <div className="rf-bg-shard" style={{ left:'79%', top:'32%', width:'15%', height:'38%', clipPath:'polygon(16% 0%, 100% 8%, 86% 100%, 0% 90%)', opacity:0.36 }}>
+          <img className="rf-bg-shard-img" src="/brand-assets/8AF34B6E-9909-47EA-ABE8-7E55CB30BF98_1_105_c.jpeg" alt="" />
+          <div className="rf-bg-shard-tint" />
+        </div>
+        <div className="rf-bg-shard" style={{ left:'56%', top:'56%', width:'20%', height:'28%', clipPath:'polygon(0% 22%, 100% 4%, 100% 78%, 0% 96%)', opacity:0.24, filter:'blur(4px)' }}>
+          <img className="rf-bg-shard-img" src="/brand-assets/72A92FE4-7AD2-41D9-8D3A-A497D7EF1230_1_105_c.jpeg" alt="" />
+          <div className="rf-bg-shard-tint" />
+        </div>
+      </div>
+
       <div className="rf-topbar">
         <Link to="/register" className="rf-topbar-back">
           <span className="rf-topbar-back-line" />
           Back
         </Link>
+        <img src="/brand-assets/mosaic-logo-nobg.png" className="rf-topbar-logo" alt="Mosaic MUN" />
         <span className="rf-topbar-meta">File 001 · SGS Registration</span>
       </div>
 
@@ -571,6 +802,19 @@ export default function RegisterSGS() {
 
       {step < 3 ? (
         <div className="rf-body">
+          {/* Step indicator */}
+          <div className="rf-steps-strip">
+            {STEPS.map((label, i) => (
+              <Fragment key={label}>
+                <div className={`rf-step-item${i < step ? ' done' : ''}${i === step ? ' active' : ''}`}>
+                  <span className="rf-step-num">{i + 1}</span>
+                  <span className="rf-step-name">{label}</span>
+                </div>
+                {i < STEPS.length - 1 && <div className="rf-step-connector" />}
+              </Fragment>
+            ))}
+          </div>
+
           <div className="rf-inner">
             <AnimatePresence mode="wait" custom={dir}>
               {step === 0 && (
@@ -732,9 +976,22 @@ export default function RegisterSGS() {
 
                   {errors.submit && <p className="rf-error" style={{ fontSize: 12, marginTop: 8 }}>{errors.submit}</p>}
 
+                  {/* Terms of service */}
+                  <div className="rf-tos-wrap">
+                    <div className="rf-tos-row" onClick={() => setAgreedToTerms(v => !v)}>
+                      <input type="checkbox" className="rf-tos-hidden" checked={agreedToTerms} onChange={() => {}} />
+                      <span className={`rf-tos-box${agreedToTerms ? ' checked' : ''}`} />
+                      <span className="rf-tos-text">
+                        By submitting, I agree to the{' '}
+                        <a href="#" onClick={e => e.stopPropagation()}>Terms &amp; Conditions</a>
+                        {' '}of Mosaic MUN II and confirm all details are accurate
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="rf-nav">
                     <button className="rf-btn-back" onClick={back}>← Previous</button>
-                    <button className="rf-btn-proceed" onClick={submit} disabled={submitting}>
+                    <button className="rf-btn-proceed" onClick={submit} disabled={submitting || !agreedToTerms}>
                       {submitting ? 'Submitting...' : 'Submit Dossier →'}
                     </button>
                   </div>
@@ -810,6 +1067,24 @@ export default function RegisterSGS() {
           </div>
         </motion.div>
       )}
+
+      {/* Footer */}
+      <footer className="rf-page-footer" aria-label="Page footer">
+        <div className="rf-page-footer-left">
+          <img src="/brand-assets/mosaic-logo-nobg.png" className="rf-page-footer-logo" alt="Mosaic MUN" />
+          <div className="rf-page-footer-info">
+            <span className="rf-page-footer-name">Mosaic MUN II</span>
+            <span className="rf-page-footer-meta">11 · 12 July 2026 · Saraswati Global School, Faridabad</span>
+          </div>
+        </div>
+        <div className="rf-page-footer-right">
+          <a href="/" className="rf-page-footer-link">Home</a>
+          <span className="rf-page-footer-sep" aria-hidden="true">·</span>
+          <a href="/register" className="rf-page-footer-link">Register</a>
+          <span className="rf-page-footer-sep" aria-hidden="true">·</span>
+          <a href="https://instagram.com/mosaicmunofficial" target="_blank" rel="noopener noreferrer" className="rf-page-footer-link" style={{ color:'var(--gold)', opacity:0.45 }}>Instagram ↗</a>
+        </div>
+      </footer>
     </div>
   )
 }
