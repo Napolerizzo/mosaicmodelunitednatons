@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 const links = ['About', 'Committees', 'FAQ']
+const NAV_ROUTES = { Portfolios: '/portfolio' }
 
 const css = `
 .nav {
@@ -462,6 +463,17 @@ export default function Navbar() {
             ))}
           </ul>
 
+          <Link
+            to="/portfolio"
+            className="nav-link"
+            style={{ textDecoration:'none' }}
+          >
+            <span className="nav-link-inner">
+              <span className="nav-link-text">Portfolios</span>
+              <span className="nav-link-text" aria-hidden="true">Portfolios</span>
+            </span>
+          </Link>
+
           {user ? (
             <div className="nav-user-area">
               <span className="nav-user-name">{firstName}</span>
@@ -540,6 +552,19 @@ export default function Navbar() {
                 </motion.a>
               ))}
             </nav>
+
+            {/* Portfolios link */}
+            <motion.a
+              className="mm-item"
+              href="/portfolio"
+              onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/portfolio') }}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.12 + links.length * 0.07, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="mm-num">0{links.length + 1}</span>
+              <span className="mm-link-text">Portfolios</span>
+            </motion.a>
 
             {/* Auth */}
             <motion.div
