@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useTransform } from 'framer-motion'
 
 const IMAGES = [
@@ -265,6 +265,66 @@ const FRAGS = [
   },
 ]
 
+// ════════════════════════════════════════════════════════════
+// MOBILE COMPOSITION — portrait magazine cover
+// Curated 5-shard layout for <768px viewports.
+// Coordinates are re-authored for portrait, not scaled from desktop.
+// Hero text lives at bottom-left; shards float upper-right and edges.
+// ════════════════════════════════════════════════════════════
+
+const MOBILE_FRAGS = [
+
+  // M0 — Primary anchor: bold diagonal shard, upper-right quadrant
+  {
+    id:100, left:'44%', top:'7%', w:'50%', h:'52%',
+    clip:[[18,0],[100,10],[84,100],[0,84]],
+    z:9, op:0.80, blur:0,
+    type:'photo', imgStart:0, speed:52, objectPos:'center 28%',
+    drift:{x:[0,2,-2,2,0], y:[0,-3,3,-2,0]}, dur:24, del:0,
+    parallaxPx:-8, border:'gold', primary:true,
+  },
+
+  // M1 — Left-edge accent: delegates peeking in from left
+  {
+    id:101, left:'2%', top:'18%', w:'30%', h:'38%',
+    clip:[[0,6],[94,0],[100,92],[6,100]],
+    z:6, op:0.44, blur:1.5,
+    type:'photo', imgStart:8, speed:108, objectPos:'center 38%',
+    drift:{x:[0,-2,3,-1,0], y:[0,3,-3,2,0]}, dur:21, del:1.6,
+    parallaxPx:-4, border:'gold-faint',
+  },
+
+  // M2 — Right-edge strip: narrow vertical slice, far-right column
+  {
+    id:102, left:'83%', top:'20%', w:'13%', h:'48%',
+    clip:[[14,0],[100,6],[88,100],[0,90]],
+    z:7, op:0.58, blur:0.5,
+    type:'photo', imgStart:4, speed:86, objectPos:'center 42%',
+    drift:{x:[0,-2,3,-2,0], y:[0,3,-3,2,0]}, dur:20, del:1.1,
+    parallaxPx:-6, border:'none',
+  },
+
+  // M3 — Lower accent: sits behind the text zone, very subtle
+  {
+    id:103, left:'50%', top:'60%', w:'40%', h:'22%',
+    clip:[[0,22],[100,4],[100,78],[0,96]],
+    z:4, op:0.28, blur:3,
+    type:'photo', imgStart:16, speed:128, objectPos:'center 55%',
+    drift:{x:[0,2,-2,1,0], y:[0,-2,2,-1,0]}, dur:28, del:2.0,
+    parallaxPx:-3, border:'none',
+  },
+
+  // M4 — Background atmospheric wash: heavy blur, impressionistic warmth
+  {
+    id:104, left:'28%', top:'2%', w:'70%', h:'66%',
+    clip:[[5,3],[98,0],[100,97],[2,100]],
+    z:2, op:0.09, blur:22,
+    type:'photo', imgStart:3, speed:650, objectPos:'center center',
+    drift:{x:[0,1,-1,1,0], y:[0,-2,2,-1,0]}, dur:42, del:1.0,
+    parallaxPx:0, border:'none',
+  },
+]
+
 const BORDER_STROKE = {
   'gold':        'rgba(155,110,9,0.65)',
   'gold-faint':  'rgba(155,110,9,0.22)',
@@ -409,9 +469,7 @@ const FIELD_CSS = `
   overflow: visible;
 }
 
-@media (max-width: 900px) {
-  .ff-field { display: none; }
-}
+/* Mobile: ff-field stays visible; mobile frag set is rendered via JS */
 `
 
 function Shard({ frag, scrollY }) {
@@ -539,10 +597,22 @@ function Shard({ frag, scrollY }) {
 }
 
 export default function FragmentField({ scrollY }) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', check, { passive: true })
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  const frags = isMobile ? MOBILE_FRAGS : FRAGS
+
   return (
     <div className="ff-field" aria-hidden="true">
       <style>{FIELD_CSS}</style>
-      {FRAGS.map(frag => (
+      {frags.map(frag => (
         <Shard key={frag.id} frag={frag} scrollY={scrollY} />
       ))}
       <div className="ff-darkness" />
