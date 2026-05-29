@@ -143,6 +143,22 @@ const css = `
   opacity: 0.55;
 }
 
+.nav-signin-link {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cream);
+  opacity: 0.42;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 8px;
+  font-family: 'Poppins', sans-serif;
+  transition: opacity 0.2s;
+}
+.nav-signin-link:hover { opacity: 0.75; }
+
 .nav-user-exit {
   font-family: 'Poppins', sans-serif;
   font-size: 10px;
@@ -480,9 +496,14 @@ export default function Navbar() {
               <button className="nav-user-exit" onClick={handleSignOut}>Exit</button>
             </div>
           ) : (
-            <button className="nav-cta" onClick={() => navigate('/login')}>
-              <span>Sign In</span>
-            </button>
+            <>
+              <button className="nav-signin-link" onClick={() => navigate('/login')}>
+                Sign In
+              </button>
+              <button className="nav-cta" onClick={() => navigate('/register')}>
+                <span>Register</span>
+              </button>
+            </>
           )}
         </div>
 
@@ -579,13 +600,19 @@ export default function Navbar() {
                   <button className="mm-auth-btn" onClick={handleSignOut}>Sign Out</button>
                 </div>
               ) : (
-                <a
-                  className="mm-auth-btn"
-                  href="/login"
-                  onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/login') }}
-                >
-                  Sign In
-                </a>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  <a className="mm-auth-btn" href="/register"
+                    onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/register') }}
+                    style={{ opacity:1, color:'var(--gold)' }}
+                  >
+                    Register
+                  </a>
+                  <a className="mm-auth-btn" href="/login"
+                    onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/login') }}
+                  >
+                    Sign In
+                  </a>
+                </div>
               )}
             </motion.div>
 

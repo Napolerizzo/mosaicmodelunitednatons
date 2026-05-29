@@ -907,6 +907,26 @@ export default function Portfolio() {
         </motion.div>
       </div>
 
+      {/* Reference notice */}
+      <div style={{
+        background: 'rgba(155,110,9,0.06)',
+        borderBottom: '1px solid rgba(155,110,9,0.1)',
+        padding: '10px 8vw',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}>
+        <span style={{ width:6, height:6, border:'1px solid rgba(155,110,9,0.5)', flexShrink:0, display:'inline-block' }} />
+        <p style={{
+          fontFamily:"'Poppins',sans-serif", fontSize:'7.5px',
+          letterSpacing:'0.3em', textTransform:'uppercase',
+          color:'var(--gold)', opacity:0.6, margin:0, lineHeight:1.6,
+        }}>
+          Reference only — portfolio availability shown here is indicative.
+          Final allocations are confirmed by the Secretariat and will be updated in this matrix accordingly.
+        </p>
+      </div>
+
       {/* Committee tabs */}
       <div className="pm-tabs-wrap">
         <div className="pm-tabs" role="tablist">

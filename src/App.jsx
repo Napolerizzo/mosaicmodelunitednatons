@@ -11,6 +11,8 @@ import CookieConsent from './components/CookieConsent'
 import CinematicBackground from './components/CinematicBackground'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import RegisterSGS from './pages/RegisterSGS'
+import RegisterExternal from './pages/RegisterExternal'
 import Portfolio from './pages/Portfolio'
 
 function MainPage() {
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/" element={<MainPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register/sgs" element={<RegisterSGS />} />
+          <Route path="/register/external" element={<RegisterExternal />} />
           <Route path="/portfolio" element={<Portfolio />} />
         </Routes>
       </BrowserRouter>

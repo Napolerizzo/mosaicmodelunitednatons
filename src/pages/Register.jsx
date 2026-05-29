@@ -1,66 +1,274 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth, sanitizeError } from '../contexts/AuthContext'
+import { motion } from 'framer-motion'
+import { useNavigate, Link } from 'react-router-dom'
+
+const PHOTOS = [
+  '/brand-assets/3CDB3AAF-0A44-430B-AFF3-41D7B339FB26_1_105_c.jpeg',
+  '/brand-assets/4AA719A1-A4D2-4877-916F-9322FE10EBD6_4_5005_c.jpeg',
+  '/brand-assets/8AF34B6E-9909-47EA-ABE8-7E55CB30BF98_1_105_c.jpeg',
+]
 
 const css = `
-/* ── REGISTER PAGE ── */
-/* Shares .auth-* classes from Login.jsx styles (injected there on /login) */
-/* Auth-page CSS is declared in Login.jsx; Register re-injects for standalone use */
-.auth-page { min-height:100vh; display:flex; background:#000; position:relative; overflow:hidden; }
-.auth-grain { position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E"); background-size:200px 200px; opacity:0.55; mix-blend-mode:overlay; }
-.auth-photo { position:relative; width:52%; flex-shrink:0; overflow:hidden; }
-.auth-photo-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:sepia(0.55) saturate(0.5) brightness(0.38); }
-.auth-photo-veil { position:absolute; inset:0; background: linear-gradient(to right, rgba(0,0,0,0.1) 55%, #000 100%), linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.7) 100%), radial-gradient(ellipse 70% 60% at 20% 100%, rgba(155,110,9,0.07) 0%, transparent 60%); }
-.auth-photo-content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:space-between; padding:40px 48px; }
-.auth-logo-img { height:26px; width:auto; display:block; }
-.auth-photo-tag { font-family:'Poppins',sans-serif; font-size:8px; letter-spacing:0.44em; text-transform:uppercase; color:var(--gold); opacity:0.55; margin:0 0 8px; }
-.auth-photo-caption { font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; font-size:clamp(1rem,1.8vw,1.4rem); color:var(--cream); opacity:0.62; margin:0; line-height:1.4; }
-.auth-form-panel { flex:1; display:flex; align-items:center; justify-content:center; padding:60px 48px; position:relative; z-index:1; border-left:1px solid rgba(155,110,9,0.07); }
-.auth-form-box { width:100%; max-width:360px; }
-.auth-back { display:inline-flex; align-items:center; gap:10px; font-family:'Poppins',sans-serif; font-size:8px; letter-spacing:0.38em; text-transform:uppercase; color:var(--muted); opacity:0.45; text-decoration:none; margin-bottom:56px; transition:opacity 0.2s ease; }
-.auth-back:hover { opacity:0.8; }
-.auth-back-arrow { width:16px; height:1px; background:currentColor; position:relative; }
-.auth-back-arrow::before { content:''; position:absolute; left:0; top:-3px; width:6px; height:6px; border-left:1px solid currentColor; border-bottom:1px solid currentColor; transform:rotate(45deg); }
-.auth-eyebrow { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
-.auth-eyebrow-line { width:26px; height:1px; background:var(--gold); opacity:0.35; }
-.auth-eyebrow-text { font-family:'Poppins',sans-serif; font-size:7.5px; letter-spacing:0.46em; text-transform:uppercase; color:var(--gold); opacity:0.55; }
-.auth-title { font-family:'Montserrat',sans-serif; font-weight:900; font-size:clamp(2.8rem,5vw,4rem); line-height:0.88; letter-spacing:-0.04em; color:var(--cream); margin:0 0 18px; }
-.auth-subtitle { font-family:'Poppins',sans-serif; font-weight:300; font-size:12px; line-height:1.9; color:var(--muted); opacity:0.7; margin:0 0 44px; }
-.auth-field { margin-bottom:28px; }
-.auth-label { display:block; font-family:'Poppins',sans-serif; font-size:7.5px; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); opacity:0.55; margin-bottom:10px; }
-.auth-input { width:100%; box-sizing:border-box; background:transparent; border:none; border-bottom:1px solid rgba(155,110,9,0.18); padding:10px 0; font-family:'Poppins',sans-serif; font-size:13px; font-weight:300; color:var(--cream); outline:none; transition:border-color 0.25s ease; -webkit-appearance:none; }
-.auth-input::placeholder { color:var(--muted); opacity:0.28; }
-.auth-input:focus { border-bottom-color:rgba(155,110,9,0.7); }
-.auth-input:-webkit-autofill { -webkit-box-shadow:0 0 0 1000px #000 inset; -webkit-text-fill-color:var(--cream); caret-color:var(--cream); }
-.auth-error { font-family:'Poppins',sans-serif; font-size:11px; font-weight:300; color:#b87070; margin:-8px 0 20px; line-height:1.6; }
-.auth-submit { width:100%; background:var(--gold); color:#000; font-family:'Poppins',sans-serif; font-size:9.5px; font-weight:500; letter-spacing:0.32em; text-transform:uppercase; border:none; padding:16px 24px; cursor:pointer; margin-top:12px; transition:opacity 0.22s ease, background 0.22s ease; }
-.auth-submit:hover:not(:disabled) { opacity:0.82; }
-.auth-submit:disabled { opacity:0.45; cursor:default; }
-.auth-switch { font-family:'Poppins',sans-serif; font-size:11px; font-weight:300; color:var(--muted); opacity:0.55; margin:28px 0 0; }
-.auth-switch a { color:var(--gold); opacity:0.85; text-decoration:none; transition:opacity 0.18s; }
-.auth-switch a:hover { opacity:1; }
-@media (max-width:768px) {
-  .auth-photo { display:block; position:absolute; inset:0; width:100%; z-index:0; }
-  .auth-photo-img { filter:sepia(0.65) saturate(0.45) brightness(0.26); }
-  .auth-photo-veil { background:linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.68) 45%, rgba(0,0,0,0.91) 100%); }
-  .auth-photo-content { display:none; }
-  .auth-form-panel { border-left:none; padding:40px 24px; min-height:100vh; align-items:flex-start; padding-top:60px; position:relative; z-index:1; background:transparent; }
-  .auth-input { border-bottom-color:rgba(155,110,9,0.28); }
-  .auth-back { margin-bottom:40px; }
-  .auth-title { font-size:clamp(2.4rem,10vw,3rem); }
+.reg-root {
+  min-height: 100vh;
+  background: #050402;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Background photos ── */
+.reg-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.reg-bg-photo {
+  position: absolute;
+  object-fit: cover;
+  filter: sepia(0.6) saturate(0.4) brightness(0.18);
+}
+.reg-bg-photo-0 {
+  width: 52%; height: 70%;
+  top: -5%; right: -4%;
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+}
+.reg-bg-photo-1 {
+  width: 34%; height: 44%;
+  bottom: 8%; right: 22%;
+  clip-path: polygon(12% 0%, 100% 6%, 88% 100%, 0% 94%);
+  opacity: 0.7;
+}
+.reg-bg-photo-2 {
+  width: 24%; height: 36%;
+  top: 28%; right: 50%;
+  clip-path: polygon(0% 8%, 100% 0%, 100% 92%, 0% 100%);
+  opacity: 0.45;
+}
+.reg-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 75% 80% at 25% 50%, rgba(5,4,2,0.85) 0%, rgba(5,4,2,0.4) 100%),
+    linear-gradient(to right, rgba(5,4,2,0.92) 38%, rgba(5,4,2,0.25) 100%);
+  pointer-events: none;
+}
+
+/* ── Top bar ── */
+.reg-topbar {
+  position: relative;
+  z-index: 10;
+  padding: 18px 8vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(155,110,9,0.08);
+  background: rgba(5,4,2,0.85);
+  backdrop-filter: blur(12px);
+}
+.reg-topbar-back {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.55;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.reg-topbar-back:hover { opacity: 0.95; }
+.reg-topbar-back-line {
+  width: 18px; height: 1px; background: currentColor; position: relative;
+}
+.reg-topbar-back-line::before {
+  content: ''; position: absolute; left: 0; top: -3px;
+  width: 5px; height: 5px;
+  border-left: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+.reg-topbar-label {
+  font-size: 7.5px; letter-spacing: 0.42em;
+  text-transform: uppercase; color: var(--gold); opacity: 0.42;
+}
+
+/* ── Main content ── */
+.reg-main {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 8vw 80px;
+}
+
+.reg-eyebrow {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+}
+.reg-eyebrow-line { width: 28px; height: 1px; background: var(--gold); opacity: 0.35; }
+.reg-eyebrow-text {
+  font-size: 7.5px; letter-spacing: 0.5em;
+  text-transform: uppercase; color: var(--gold); opacity: 0.5;
+}
+
+.reg-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: clamp(4rem, 11vw, 11rem);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: #e8e4dc;
+  margin: 0 0 16px;
+}
+
+.reg-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(0.95rem, 1.6vw, 1.2rem);
+  color: var(--muted);
+  opacity: 0.58;
+  margin: 0 0 56px;
+}
+
+/* ── File cards ── */
+.reg-files {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 860px;
+}
+
+.reg-file-card {
+  position: relative;
+  background: rgba(8,6,4,0.92);
+  border: 1px solid rgba(155,110,9,0.14);
+  padding: 32px 28px;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
+  overflow: hidden;
+  text-align: left;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.reg-file-card:hover, .reg-file-card:focus-visible {
+  border-color: rgba(155,110,9,0.45);
+  background: rgba(155,110,9,0.025);
+  transform: translateY(-3px);
+}
+.reg-file-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.reg-file-card:hover::before, .reg-file-card:focus-visible::before { opacity: 0.6; }
+
+.reg-file-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  opacity: 0.4;
+  margin-bottom: 28px;
+  display: block;
+}
+
+.reg-file-tag {
+  font-size: 6.5px;
+  letter-spacing: 0.44em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.45;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.reg-file-name {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.3rem, 2.8vw, 2rem);
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  color: #e8e4dc;
+  margin: 0 0 14px;
+}
+
+.reg-file-desc {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  line-height: 1.85;
+  color: var(--muted);
+  opacity: 0.55;
+  margin: 0 0 28px;
+}
+
+.reg-file-cta {
+  font-size: 8px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.2s, gap 0.2s;
+}
+.reg-file-card:hover .reg-file-cta { opacity: 1; gap: 14px; }
+
+.reg-file-cta-line {
+  width: 20px; height: 1px; background: currentColor;
+  transition: width 0.3s ease;
+}
+.reg-file-card:hover .reg-file-cta-line { width: 28px; }
+
+/* ghost number behind card */
+.reg-file-ghost {
+  position: absolute;
+  bottom: -10px; right: 8px;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 9rem;
+  line-height: 1;
+  color: rgba(155,110,9,0.04);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.06em;
+}
+
+/* ── Bottom note ── */
+.reg-note {
+  position: relative;
+  z-index: 2;
+  padding: 0 8vw 32px;
+  font-size: 8px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.28;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .reg-topbar { padding: 14px 20px; }
+  .reg-main { padding: 40px 20px 56px; }
+  .reg-files { grid-template-columns: 1fr; gap: 12px; }
+  .reg-file-card { padding: 24px 20px; }
+  .reg-note { padding: 0 20px 24px; }
 }
 `
 
 export default function Register() {
-  const [fullName, setFullName] = useState('')
-  const [school, setSchool] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const { register } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -70,163 +278,88 @@ export default function Register() {
     return () => document.head.removeChild(style)
   }, [])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (submitting) return
-    setError('')
-
-    if (!fullName.trim()) { setError('Please enter your full name.'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
-    if (password !== confirm) { setError('Passwords do not match.'); return }
-
-    setSubmitting(true)
-    try {
-      await register(email.trim().toLowerCase(), password, fullName.trim(), school.trim())
-      setSuccess(true)
-      setTimeout(() => navigate('/'), 1800)
-    } catch (err) {
-      setError(sanitizeError(err))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
-    <div className="auth-page">
-      <div className="auth-grain" aria-hidden="true" />
+    <div className="reg-root">
+      {/* Background */}
+      <div className="reg-bg-layer" aria-hidden="true">
+        {PHOTOS.map((src, i) => (
+          <img key={i} src={src} className={`reg-bg-photo reg-bg-photo-${i}`} alt="" />
+        ))}
+      </div>
+      <div className="reg-veil" aria-hidden="true" />
 
-      {/* Photo panel */}
-      <div className="auth-photo" aria-hidden="true">
-        <img
-          className="auth-photo-img"
-          src="/brand-assets/4AA719A1-A4D2-4877-916F-9322FE10EBD6_4_5005_c.jpeg"
-          alt=""
-        />
-        <div className="auth-photo-veil" />
-        <div className="auth-photo-content">
-          <Link to="/">
-            <img src="/brand-assets/mosaic-logo-nobg.png" className="auth-logo-img" alt="Mosaic MUN" />
-          </Link>
-          <div className="auth-photo-bottom">
-            <p className="auth-photo-tag">Mosaic MUN II &middot; 2026</p>
-            <p className="auth-photo-caption">
-              Saraswati Global School,<br />Faridabad
-            </p>
-          </div>
-        </div>
+      {/* Top bar */}
+      <div className="reg-topbar">
+        <Link to="/" className="reg-topbar-back">
+          <span className="reg-topbar-back-line" />
+          Return to site
+        </Link>
+        <span className="reg-topbar-label">Delegate Accreditation · Mosaic MUN II</span>
       </div>
 
-      {/* Form panel */}
-      <div className="auth-form-panel">
-        <div className="auth-form-box">
-          <Link to="/" className="auth-back">
-            <span className="auth-back-arrow" />
-            Return to site
-          </Link>
-
-          <div className="auth-eyebrow">
-            <span className="auth-eyebrow-line" />
-            <span className="auth-eyebrow-text">Delegate Registration</span>
+      {/* Main */}
+      <div className="reg-main">
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="reg-eyebrow">
+            <span className="reg-eyebrow-line" />
+            <span className="reg-eyebrow-text">Access Request · Select Classification</span>
           </div>
+          <h1 className="reg-title">Delegate<br />Access.</h1>
+          <p className="reg-sub">Before you enter the chamber, you must be cleared.</p>
 
-          <h1 className="auth-title">Register.</h1>
-          <p className="auth-subtitle">Create your delegate account for Mosaic MUN II.</p>
-
-          {success ? (
-            <div style={{ paddingTop: 8 }}>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, fontWeight: 300, color: 'var(--cream)', opacity: 0.85, lineHeight: 1.8, margin: '0 0 8px' }}>
-                Account created.
+          <div className="reg-files">
+            {/* SGS file */}
+            <motion.button
+              className="reg-file-card"
+              onClick={() => navigate('/register/sgs')}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="reg-file-num">FILE · 001</span>
+              <span className="reg-file-tag">Internal · SGS Students Only</span>
+              <h2 className="reg-file-name">Saraswati<br />Global School</h2>
+              <p className="reg-file-desc">
+                For students currently enrolled at Saraswati Global School, Faridabad.
+                Valid school ID and payment required.
               </p>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 11, fontWeight: 300, color: 'var(--muted)', opacity: 0.6, lineHeight: 1.7, margin: 0 }}>
-                Redirecting you now...
+              <div className="reg-file-cta">
+                <span className="reg-file-cta-line" />
+                Access File
+              </div>
+              <span className="reg-file-ghost" aria-hidden="true">01</span>
+            </motion.button>
+
+            {/* External file */}
+            <motion.button
+              className="reg-file-card"
+              onClick={() => navigate('/register/external')}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="reg-file-num">FILE · 002</span>
+              <span className="reg-file-tag">External · Open Application</span>
+              <h2 className="reg-file-name">External<br />Delegate</h2>
+              <p className="reg-file-desc">
+                For delegates from outside institutions. Full documentation
+                and personal details required for processing.
               </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} noValidate>
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="reg-name">Full Name</label>
-                <input
-                  id="reg-name"
-                  type="text"
-                  className="auth-input"
-                  value={fullName}
-                  onChange={e => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  required
-                  autoComplete="name"
-                  autoFocus
-                />
+              <div className="reg-file-cta">
+                <span className="reg-file-cta-line" />
+                Access File
               </div>
-
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="reg-school">School / Institution</label>
-                <input
-                  id="reg-school"
-                  type="text"
-                  className="auth-input"
-                  value={school}
-                  onChange={e => setSchool(e.target.value)}
-                  placeholder="Your school"
-                  autoComplete="organization"
-                />
-              </div>
-
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="reg-email">Email Address</label>
-                <input
-                  id="reg-email"
-                  type="email"
-                  className="auth-input"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="reg-password">Password</label>
-                <input
-                  id="reg-password"
-                  type="password"
-                  className="auth-input"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  required
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="reg-confirm">Confirm Password</label>
-                <input
-                  id="reg-confirm"
-                  type="password"
-                  className="auth-input"
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  placeholder="Repeat password"
-                  required
-                  autoComplete="new-password"
-                />
-              </div>
-
-              {error && <p className="auth-error" role="alert">{error}</p>}
-
-              <button type="submit" className="auth-submit" disabled={submitting}>
-                {submitting ? 'Creating account...' : 'Create Account'}
-              </button>
-            </form>
-          )}
-
-          <p className="auth-switch">
-            Already registered?{' '}
-            <Link to="/login">Sign in</Link>
-          </p>
-        </div>
+              <span className="reg-file-ghost" aria-hidden="true">02</span>
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
+
+      <p className="reg-note">Mosaic MUN II · 11 · 12 July 2026 · Saraswati Global School, Faridabad</p>
     </div>
   )
 }

@@ -238,8 +238,8 @@ export default function Hero() {
 
         {/* CTAs */}
         <motion.div className="hero-btns" variants={stagger(5)} initial="hidden" animate="visible">
-          <a className="btn btn-gold" href="#register"
-            onClick={e => { e.preventDefault(); document.querySelector('#register')?.scrollIntoView({ behavior: 'smooth' }) }}>
+          <a className="btn btn-gold" href="/register"
+            onClick={e => { e.preventDefault(); window.location.href = '/register' }}>
             <div className="btn-fill" /><span>Register Now</span>
           </a>
           <a className="btn btn-outline" href="#about"
