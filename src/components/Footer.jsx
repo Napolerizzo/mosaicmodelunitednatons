@@ -38,17 +38,17 @@ const css = `
 }
 
 .fp-p:nth-child(1) { animation-delay: -3s;  object-position: center 35%; }
-.fp-p:nth-child(2) { animation-delay: 10s;  object-position: center 55%; }
-.fp-p:nth-child(3) { animation-delay: 20s;  object-position: center 45%; }
-.fp-p:nth-child(4) { animation-delay: 30s;  object-position: center 30%; }
-.fp-p:nth-child(5) { animation-delay: 40s;  object-position: center 60%; }
+.fp-p:nth-child(2) { animation-delay: 7s;   object-position: center 55%; }
+.fp-p:nth-child(3) { animation-delay: 17s;  object-position: center 45%; }
+.fp-p:nth-child(4) { animation-delay: 27s;  object-position: center 30%; }
+.fp-p:nth-child(5) { animation-delay: 37s;  object-position: center 60%; }
 
 @keyframes fp-cycle {
-  0%   { opacity: 0; }
-  4%   { opacity: 0.16; }
-  16%  { opacity: 0.16; }
-  20%  { opacity: 0;   }
-  100% { opacity: 0;   }
+  0%   { opacity: 0;    }
+  3%   { opacity: 0.16; }
+  17%  { opacity: 0.16; }
+  23%  { opacity: 0;    }
+  100% { opacity: 0;    }
 }
 
 /* Layered overlays */
@@ -174,16 +174,16 @@ const css = `
   font-size: 9px;
   letter-spacing: 0.1em;
   color: var(--muted);
-  opacity: 0.32;
+  opacity: 0.58;
 }
 
 .fp-credit a {
   color: var(--gold);
-  opacity: 0.5;
+  opacity: 0.75;
   text-decoration: none;
   transition: opacity 0.2s ease;
 }
-.fp-credit a:hover { opacity: 0.85; }
+.fp-credit a:hover { opacity: 1; }
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -280,7 +280,7 @@ export default function Footer() {
             <a href="#" className="fp-bar-link">Terms</a>
             <span className="fp-bar-sep">·</span>
             <a
-              href="https://instagram.com/mosaicmun"
+              href="https://instagram.com/mosaicmunofficial"
               target="_blank"
               rel="noopener noreferrer"
               className="fp-ig"
