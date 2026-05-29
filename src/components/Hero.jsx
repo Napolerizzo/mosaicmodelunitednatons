@@ -226,7 +226,7 @@ export default function Hero() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9b6e09" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
             </svg>
-            11–12 July 2026
+            11 · 12 July 2026
           </div>
           <div className="hero-meta-item">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9b6e09" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

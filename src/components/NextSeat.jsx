@@ -204,7 +204,7 @@ export default function NextSeat() {
           <div className="nextseat-cta-row">
             <a
               className="btn btn-gold"
-              href="mailto:sameer.jhamb1719@gmail.com?subject=Mosaic MUN II — Registration Interest"
+              href="mailto:sameer.jhamb1719@gmail.com?subject=Mosaic MUN II Registration Interest"
             >
               <div className="btn-fill" />
               <span>Register Interest</span>

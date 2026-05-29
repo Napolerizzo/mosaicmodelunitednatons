@@ -249,7 +249,7 @@ export default function Footer() {
         {/* Top: slogan + info */}
         <div className="fp-top">
           <p className="fp-slogan">Debate. Deliberate. Decide.</p>
-          <p className="fp-info">Mosaic MUN II &nbsp;&middot;&nbsp; 11&ndash;12 July 2026</p>
+          <p className="fp-info">Mosaic MUN II &nbsp;&middot;&nbsp; 11 · 12 July 2026</p>
           <p className="fp-info">Saraswati Global School, Faridabad</p>
         </div>
 
