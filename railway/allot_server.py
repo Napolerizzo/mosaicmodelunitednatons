@@ -70,50 +70,50 @@ _last_gemini_call = 0.0
 COMMITTEE_FULL = {
     "UNGA": {
         "name": "United Nations General Assembly",
-        "agenda": "Addressing Global Refugee Crisis and Displacement",
-        "description": "Delegates represent UN member states (193 countries). Each delegate is ONE country. Debate focuses on international cooperation on refugee resettlement, border policies, and humanitarian aid.",
+        "agenda": "Discussing the Voting Rights of States Under Foreign Military Occupation",
+        "description": "Delegates represent UN member states (193 countries). Military occupation strips a state of territorial control and often challenges its standing in international institutions. The committee interrogates whether occupied states retain full UNGA voting rights — engaging with Palestinian observer status, Western Sahara, Crimea, and what statehood means when boots are on the ground.",
         "valid": "Any of the 193 UN member states.",
         "invalid": "NGOs, individuals, companies, fictional states, non-UN entities.",
     },
     "UNCSW": {
         "name": "UN Commission on the Status of Women",
-        "agenda": "Bridging the Digital Gender Divide",
-        "description": "Delegates represent UN member states. Debate focuses on closing the gender gap in technology access, digital literacy, and STEM careers.",
+        "agenda": "Deliberation upon Surrogate Motherhood as International Labor",
+        "description": "Delegates represent UN member states. Commercial surrogacy sits at the collision point of reproductive rights, labor law, migration, and bodily autonomy. Women from lower-income countries often carry children for wealthier clients abroad, raising urgent questions about informed consent, fair compensation, exploitation, and whether surrogacy constitutes labor deserving international protection.",
         "valid": "Any of the 193 UN member states.",
         "invalid": "Individuals, organizations, companies.",
     },
     "UNHRC": {
         "name": "UN Human Rights Council",
-        "agenda": "Protecting Human Rights Defenders in Armed Conflict Zones",
-        "description": "Delegates represent UN member states. Debate focuses on legal protections, international mechanisms, and accountability for violence against human rights defenders.",
+        "agenda": "Discussing The Right to Be Forgotten vs. The Right to Truth in Atrocity Documentation",
+        "description": "Delegates represent UN member states. Perpetrators of genocide and war crimes have begun invoking the right to be forgotten to scrub their names from atrocity documentation. The committee confronts cases drawn from the Balkans, Rwanda, and Syria: when do privacy rights yield to historical accountability? Can international law protect digital archives of atrocity?",
         "valid": "Any of the 193 UN member states.",
         "invalid": "Individuals, NGOs, companies.",
     },
     "AIPPM": {
         "name": "All India Political Parties Meet",
-        "agenda": "India's Military Response to Cross-Border Terrorism",
-        "description": "Delegates represent real, named, currently active Indian politicians. Debate covers military doctrine, surgical strikes, international law, and diplomatic consequences.",
+        "agenda": "Operation Sindoor and the Question of Parliamentary War Powers",
+        "description": "Delegates represent real, named, currently active Indian politicians. In May 2025, India launched Operation Sindoor — precision strikes on terrorist infrastructure in Pakistan-administered Kashmir. The operation raised a constitutional question India has never formally resolved: does the executive branch have authority to conduct offensive military operations abroad without explicit parliamentary sanction?",
         "valid": "Real active Indian politicians: MPs, MLAs, Chief Ministers, Union Ministers, party presidents.",
         "invalid": "Fictional politicians, foreign politicians, companies, states/regions as entities.",
     },
     "IPL": {
         "name": "Indian Premier League Committee",
-        "agenda": "IPL Expansion, Broadcasting Rights and Player Salary Cap Reform",
-        "description": "Delegates represent IPL franchises (existing, legacy, or expansion). Debate covers franchise economics, broadcasting revenue distribution, and player contracts.",
+        "agenda": "Mega Auction",
+        "description": "Delegates represent IPL franchises. Delegates bid for players within strict budget constraints, use RTM cards strategically, and build balanced squads for a full season. The committee involves real-time bidding rounds, negotiation between franchises, and decisions under significant time pressure.",
         "valid": "Mumbai Indians, Chennai Super Kings, Royal Challengers Bengaluru, KKR, SRH, Rajasthan Royals, Delhi Capitals, Punjab Kings, Gujarat Titans, Lucknow Super Giants, Deccan Chargers, Kochi Tuskers, Pune Warriors, Rising Pune Supergiant, Kashmir Kings, Goa Mariners, Ahmedabad Falcons, Vizag Sharks, Indore Leopards, Nagpur Strikers.",
         "invalid": "Players, sponsors, individuals, non-franchise entities.",
     },
     "IP": {
         "name": "International Press Corps",
-        "agenda": "Covering all committees — reporting, photography, and editorial",
-        "description": "Press corps delegates cover other committees as journalists. There are exactly THREE tracks.",
+        "agenda": "Photography, Caricature, and Journalism",
+        "description": "Press corps delegates cover other committees as journalists. Photojournalists cover sessions and moments. Caricaturists produce editorial commentary on the day's debates. Journalists write communiques and file stories under tight deadlines. There are exactly THREE tracks.",
         "valid": "ONLY: Photojournalism, Written Journalism, Editorial Caricature — nothing else.",
         "invalid": "Everything else. Any other input must be rejected.",
     },
     "USSIC": {
         "name": "US Senate Intelligence Committee",
-        "agenda": "Foreign Interference in US Critical Infrastructure",
-        "description": "Delegates represent real US senators, senior intelligence officials, or executive branch officials. Debate covers cybersecurity threats, classified intelligence, and legislative responses.",
+        "agenda": "Discussing and Declassifying The Epstein Files",
+        "description": "Delegates represent real US senators, senior intelligence officials, or executive branch officials. Jeffrey Epstein's documented connections to intelligence networks, foreign governments, and powerful political figures were never fully investigated. This crisis committee simulates a live Senate hearing as sealed documents are released in real time, witnesses appear under subpoena, and new information forces the committee to adapt.",
         "valid": "Sitting US Senators, CIA/FBI/NSA/DNI/DIA/CISA Directors, President, VP, Secretary of State, Secretary of Defense, Attorney General, Chairman Joint Chiefs, Commander US Cyber Command, Commander Indo-Pacific Command, CEO Google, CEO Microsoft, Whistleblower Asset Alpha, Foreign Intelligence Liaison Director.",
         "invalid": "Foreign nationals, fictional characters, private citizens.",
     },
@@ -513,52 +513,161 @@ def send_allotment_email(to: str, name: str, committee: str, portfolio: str,
     cp = round(confidence * 100)
     ctx = COMMITTEE_FULL.get(committee, {})
     agenda = ctx.get("agenda", "")
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
-<body style="margin:0;background:#050402;font-family:Helvetica,Arial,sans-serif;">
-<table width="100%" style="background:#050402;"><tr><td align="center" style="padding:48px 20px 0;">
-<table width="560" style="max-width:560px;width:100%;">
-<tr><td style="border-bottom:1px solid rgba(155,110,9,.25);padding-bottom:24px;">
-<img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="28" style="opacity:.85;display:block;"/></td></tr>
-<tr><td style="padding-top:36px;padding-bottom:8px;">
-<span style="border:1.5px solid rgba(155,110,9,.55);padding:5px 16px;font-size:9px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;">ALLOTMENT CONFIRMED</span></td></tr>
-<tr><td style="padding-top:20px;"><h1 style="margin:0;font-size:36px;font-weight:900;letter-spacing:-.04em;color:#e8e4dc;line-height:1.05;">{fn},<br/>your seat<br/>is confirmed.</h1></td></tr>
-<tr><td style="padding:16px 0 36px;border-bottom:1px solid rgba(155,110,9,.1);">
-<p style="margin:0;font-size:15px;color:#b5a88e;line-height:1.65;font-style:italic;">The Secretariat has confirmed your allocation. Your portfolio is reserved in your name.</p></td></tr>
-<tr><td style="padding-top:32px;">
-<table width="100%" style="border:1px solid rgba(155,110,9,.28);background:rgba(155,110,9,.04);">
-<tr><td style="padding:20px 24px 16px;border-bottom:1px solid rgba(155,110,9,.15);">
-<span style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.6;">MOSAIC MUN II · DELEGATE CREDENTIAL</span></td></tr>
-<tr><td style="padding:24px;">
-<table width="100%"><tr>
-<td style="vertical-align:top;padding-right:20px;">
-<div style="margin-bottom:16px;"><div style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.5;margin-bottom:4px;">DELEGATE</div><div style="font-size:16px;font-weight:700;color:#e8e4dc;">{name}</div></div>
-<div style="margin-bottom:16px;"><div style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.5;margin-bottom:4px;">COMMITTEE</div><div style="font-size:15px;font-weight:700;color:#e8e4dc;">{committee}</div></div>
-<div style="margin-bottom:16px;"><div style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.5;margin-bottom:4px;">AGENDA</div><div style="font-size:12px;color:#c8bba0;font-style:italic;">{agenda}</div></div>
-<div style="margin-bottom:16px;"><div style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.5;margin-bottom:4px;">PORTFOLIO</div><div style="font-size:15px;font-weight:700;color:#e8e4dc;">{portfolio}</div></div>
-<div><div style="font-size:7px;letter-spacing:.44em;text-transform:uppercase;color:#9b6e09;opacity:.5;margin-bottom:6px;">STATUS</div>
-<span style="font-size:9px;letter-spacing:.28em;color:rgba(155,110,9,.9);border:1px solid rgba(155,110,9,.35);padding:4px 12px;text-transform:uppercase;">ALLOTTED</span></div></td>
-<td style="vertical-align:top;text-align:right;width:110px;">
-<div style="border:1px solid rgba(155,110,9,.22);padding:10px;display:inline-block;">
-<img src="{_qr(reg_id)}" width="90" height="90" style="display:block;"/></div>
-<div style="font-size:7px;letter-spacing:.2em;color:#9b6e09;opacity:.35;margin-top:6px;text-transform:uppercase;">SCAN TO VERIFY</div></td></tr></table></td></tr>
-<tr><td style="padding:14px 24px;border-top:1px solid rgba(155,110,9,.1);">
-<span style="font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:#7a6a4e;">11–12 JULY 2026 · SARASWATI GLOBAL SCHOOL, FARIDABAD</span>
-<span style="float:right;font-size:7px;letter-spacing:.28em;text-transform:uppercase;color:#9b6e09;opacity:.45;border:1px solid rgba(155,110,9,.2);padding:2px 8px;">{cp}% CONFIDENCE{'' if is_stable else ' · REVIEW'}</span></td></tr></table></td></tr>
-<tr><td style="padding:28px 0 12px;"><p style="margin:0;font-size:11px;color:#7a6a4e;line-height:1.85;font-style:italic;">
-Registration ID: <strong style="color:#9b6e09;letter-spacing:.1em;">{reg_id}</strong><br/>
-Bring this ID to the conference for check-in.<br/>
-Queries: <a href="mailto:sameer.jhamb1719@gmail.com" style="color:#9b6e09;text-decoration:none;">sameer.jhamb1719@gmail.com</a></p></td></tr>
-<tr><td style="padding:20px 0 48px;border-top:1px solid rgba(155,110,9,.1);">
-<img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="20" style="opacity:.45;display:block;margin-bottom:6px;"/>
-<div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#5a4e38;">Mosaic MUN II · Saraswati Global School</div></td></tr>
-</table></td></tr></table></body></html>"""
+    committee_full_name = ctx.get("name", committee)
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Portfolio Allotment — Mosaic MUN II</title>
+</head>
+<body style="margin:0;padding:0;background:#050402;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#050402;">
+<tr><td align="center" style="padding:52px 20px 0;">
+<table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+  <!-- Header -->
+  <tr><td style="border-bottom:1px solid rgba(155,110,9,0.2);padding-bottom:28px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="26" alt="Mosaic MUN" style="opacity:0.88;display:block;"/></td>
+      <td align="right" style="font-size:7.5px;letter-spacing:0.38em;text-transform:uppercase;color:rgba(155,110,9,0.4);vertical-align:middle;">OFFICIAL CORRESPONDENCE</td>
+    </tr></table>
+  </td></tr>
+
+  <!-- Stamp + Heading -->
+  <tr><td style="padding-top:44px;padding-bottom:6px;">
+    <div style="display:inline-block;border:1.5px solid rgba(155,110,9,0.5);padding:5px 18px;font-size:8.5px;letter-spacing:0.48em;text-transform:uppercase;color:#9b6e09;margin-bottom:28px;">ALLOTMENT CONFIRMED</div>
+  </td></tr>
+  <tr><td style="padding-bottom:8px;">
+    <h1 style="margin:0;font-size:38px;font-weight:900;letter-spacing:-0.045em;color:#e8e4dc;line-height:1.04;">{fn},<br/>your seat<br/>is confirmed.</h1>
+  </td></tr>
+  <tr><td style="padding:18px 0 38px;border-bottom:1px solid rgba(155,110,9,0.1);">
+    <p style="margin:0;font-size:15px;color:#b5a88e;line-height:1.7;font-style:italic;">
+      The Secretariat of Mosaic Model United Nations II is pleased to confirm your portfolio allotment for the conference on 11–12 July 2026 at Saraswati Global School, Faridabad. Your position has been formally reserved and this credential constitutes your official accreditation.
+    </p>
+  </td></tr>
+
+  <!-- Credential Card -->
+  <tr><td style="padding-top:36px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(155,110,9,0.3);background:linear-gradient(135deg,rgba(155,110,9,0.06) 0%,rgba(0,0,0,0) 60%);">
+
+      <!-- Card Header -->
+      <tr><td style="padding:22px 28px 18px;border-bottom:1px solid rgba(155,110,9,0.14);">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:7px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.55);">MOSAIC MUN II &nbsp;·&nbsp; DELEGATE CREDENTIAL &nbsp;·&nbsp; EDITION II</td>
+          <td align="right" style="font-size:7px;letter-spacing:0.38em;text-transform:uppercase;color:rgba(155,110,9,0.35);">ACCREDITATION</td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Card Body -->
+      <tr><td style="padding:28px;">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <!-- Fields -->
+          <td style="vertical-align:top;padding-right:24px;">
+            <div style="margin-bottom:20px;">
+              <div style="font-size:6.5px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:5px;">DELEGATE</div>
+              <div style="font-size:17px;font-weight:700;color:#e8e4dc;letter-spacing:0.01em;">{name}</div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <div style="font-size:6.5px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:5px;">COMMITTEE</div>
+              <div style="font-size:13px;font-weight:700;color:#e8e4dc;">{committee} &mdash; {committee_full_name}</div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <div style="font-size:6.5px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:5px;">AGENDA</div>
+              <div style="font-size:12px;color:#c4b490;font-style:italic;line-height:1.55;">{agenda}</div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <div style="font-size:6.5px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:5px;">ALLOTTED PORTFOLIO</div>
+              <div style="font-size:16px;font-weight:700;color:#e8e4dc;">{portfolio}</div>
+            </div>
+            <div>
+              <div style="font-size:6.5px;letter-spacing:0.46em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:8px;">ALLOTMENT STATUS</div>
+              <span style="font-size:8.5px;letter-spacing:0.3em;color:rgba(155,110,9,0.95);border:1px solid rgba(155,110,9,0.38);padding:5px 14px;text-transform:uppercase;">CONFIRMED &amp; ACTIVE</span>
+            </div>
+          </td>
+          <!-- QR -->
+          <td style="vertical-align:top;text-align:right;width:118px;">
+            <div style="border:1px solid rgba(155,110,9,0.25);padding:12px;display:inline-block;background:rgba(255,255,255,0.025);">
+              <img src="{_qr(reg_id)}" width="94" height="94" alt="Verification QR" style="display:block;"/>
+            </div>
+            <div style="font-size:6.5px;letter-spacing:0.22em;color:rgba(155,110,9,0.35);margin-top:7px;text-transform:uppercase;text-align:center;">SCAN TO VERIFY</div>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Card Footer -->
+      <tr><td style="padding:16px 28px;border-top:1px solid rgba(155,110,9,0.1);">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:7.5px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(122,106,78,0.7);">11–12 JULY 2026 &nbsp;·&nbsp; SARASWATI GLOBAL SCHOOL, FARIDABAD</td>
+          <td align="right">
+            <span style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:rgba(155,110,9,0.5);border:1px solid rgba(155,110,9,0.2);padding:3px 10px;">{cp}% CONFIDENCE{'' if is_stable else ' &nbsp;·&nbsp; MANUAL REVIEW'}</span>
+          </td>
+        </tr></table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Registration ID + Instructions -->
+  <tr><td style="padding:32px 0 8px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-left:2px solid rgba(155,110,9,0.3);padding-left:18px;">
+      <tr><td>
+        <div style="font-size:7px;letter-spacing:0.42em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:8px;">REGISTRATION REFERENCE</div>
+        <div style="font-family:'Courier New',monospace;font-size:14px;color:#9b6e09;letter-spacing:0.14em;margin-bottom:16px;">{reg_id}</div>
+        <p style="margin:0;font-size:12px;color:rgba(180,164,138,0.75);line-height:1.9;">
+          Please retain this registration ID. You will be required to present it at the accreditation desk upon arrival at the conference venue. Failure to produce a valid credential may result in delayed entry.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Algorithmic Disclosure -->
+  <tr><td style="padding:28px 0 8px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(155,110,9,0.03);border:1px solid rgba(155,110,9,0.1);padding:18px 20px;">
+      <tr><td>
+        <div style="font-size:7px;letter-spacing:0.4em;text-transform:uppercase;color:rgba(155,110,9,0.4);margin-bottom:8px;">ALLOTMENT PROCESS DISCLOSURE</div>
+        <p style="margin:0;font-size:11px;color:rgba(160,144,118,0.65);line-height:1.85;">
+          This allotment was determined exclusively by the Mosaic MUN Allocation Engine — an automated system employing the Hungarian optimisation algorithm, Monte Carlo stability analysis, and adaptive preference-weighting. No human intervention was involved in the assignment of portfolios. The engine ensures globally optimal allocation across all registered delegates simultaneously, minimising preference dissatisfaction at the cohort level. For queries regarding your allotment, please contact the Secretariat.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Divider -->
+  <tr><td style="padding:28px 0 0;border-top:1px solid rgba(155,110,9,0.08);"></td></tr>
+
+  <!-- Footer Brand -->
+  <tr><td style="padding-bottom:10px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td>
+        <img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="20" alt="Mosaic MUN" style="opacity:0.42;display:block;margin-bottom:7px;"/>
+        <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(90,78,56,0.7);">Mosaic Model United Nations II &nbsp;·&nbsp; Saraswati Global School, Faridabad</div>
+      </td>
+      <td align="right" valign="bottom">
+        <a href="https://instagram.com/mosaicmunofficial" style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(155,110,9,0.45);text-decoration:none;">Instagram &#8599;</a>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <!-- Legal Disclaimer -->
+  <tr><td style="padding:20px 0 52px;border-top:1px solid rgba(255,255,255,0.04);">
+    <p style="margin:0;font-size:9.5px;color:rgba(120,108,88,0.45);line-height:1.9;">
+      <strong style="color:rgba(155,110,9,0.35);letter-spacing:0.05em;">CONFIDENTIALITY NOTICE:</strong> This electronic mail message and any attachments are intended solely for the use of the individual or entity to whom they are addressed. If you have received this communication in error, please notify the sender immediately by reply email and permanently delete the original message and any copies from your system. Unauthorised review, use, disclosure, dissemination, forwarding, printing, or copying of this email and its attachments, if any, is strictly prohibited and may be unlawful.<br/><br/>
+      This message was generated and dispatched by the Mosaic MUN II automated allotment system on behalf of the Secretariat, Mosaic Model United Nations &mdash; Second Edition. &copy; 2026 Mosaic MUN. All rights reserved.
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
 
     try:
         r = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
             json={"from": "Mosaic MUN II <allotments@sandnco.lol>", "to": [to],
-                  "subject": f"Your Allotment — {committee} | {portfolio} · Mosaic MUN II",
+                  "subject": f"Portfolio Allotment Confirmed — {committee} | {portfolio} · Mosaic MUN II",
                   "html": html},
             timeout=15,
         )
@@ -572,27 +681,89 @@ Queries: <a href="mailto:sameer.jhamb1719@gmail.com" style="color:#9b6e09;text-d
 def send_waitlist_email(to: str, name: str, reg_id: str):
     if not RESEND_KEY or not to: return
     fn = name.split()[0] if name else "Delegate"
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
-<body style="margin:0;background:#050402;font-family:Helvetica,Arial,sans-serif;">
-<table width="100%" style="background:#050402;"><tr><td align="center" style="padding:48px 20px 0;">
-<table width="560" style="max-width:560px;width:100%;">
-<tr><td style="border-bottom:1px solid rgba(155,110,9,.25);padding-bottom:24px;">
-<img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="28" style="opacity:.85;display:block;"/></td></tr>
-<tr><td style="padding-top:40px;"><h1 style="margin:0;font-size:34px;font-weight:900;color:#e8e4dc;line-height:1.1;">{fn}, you're<br/>on the waitlist.</h1></td></tr>
-<tr><td style="padding:20px 0 36px;"><p style="margin:0;font-size:15px;color:#b5a88e;line-height:1.65;font-style:italic;">
-Your registration is received. All seats matching your preferences are currently filled.
-You will be notified as soon as a spot opens.</p></td></tr>
-<tr><td style="padding:12px 0 48px;border-top:1px solid rgba(155,110,9,.1);">
-<p style="margin:16px 0 0;font-size:11px;color:#7a6a4e;line-height:1.85;font-style:italic;">
-Registration ID: <strong style="color:#9b6e09;">{reg_id}</strong><br/>
-Queries: <a href="mailto:sameer.jhamb1719@gmail.com" style="color:#9b6e09;text-decoration:none;">sameer.jhamb1719@gmail.com</a>
-</p></td></tr></table></td></tr></table></body></html>"""
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Waitlist Notice — Mosaic MUN II</title></head>
+<body style="margin:0;padding:0;background:#050402;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#050402;">
+<tr><td align="center" style="padding:52px 20px 0;">
+<table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+  <tr><td style="border-bottom:1px solid rgba(155,110,9,0.2);padding-bottom:28px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="26" alt="Mosaic MUN" style="opacity:0.88;display:block;"/></td>
+      <td align="right" style="font-size:7.5px;letter-spacing:0.38em;text-transform:uppercase;color:rgba(155,110,9,0.4);vertical-align:middle;">OFFICIAL CORRESPONDENCE</td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="padding-top:44px;padding-bottom:6px;">
+    <div style="display:inline-block;border:1.5px solid rgba(155,110,9,0.35);padding:5px 18px;font-size:8.5px;letter-spacing:0.48em;text-transform:uppercase;color:rgba(155,110,9,0.7);margin-bottom:28px;">WAITLIST NOTICE</div>
+  </td></tr>
+  <tr><td style="padding-bottom:8px;">
+    <h1 style="margin:0;font-size:36px;font-weight:900;letter-spacing:-0.04em;color:#e8e4dc;line-height:1.06;">{fn}, your<br/>application is<br/>under review.</h1>
+  </td></tr>
+  <tr><td style="padding:18px 0 38px;border-bottom:1px solid rgba(155,110,9,0.1);">
+    <p style="margin:0;font-size:15px;color:#b5a88e;line-height:1.7;font-style:italic;">
+      Your registration for Mosaic MUN II has been successfully received and processed. At this time, all available seats matching your submitted preferences are at capacity. You have been placed on the official waitlist and will receive a further communication should a position become available.
+    </p>
+  </td></tr>
+
+  <tr><td style="padding:32px 0 8px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-left:2px solid rgba(155,110,9,0.3);padding-left:18px;">
+      <tr><td>
+        <div style="font-size:7px;letter-spacing:0.42em;text-transform:uppercase;color:rgba(155,110,9,0.45);margin-bottom:8px;">REGISTRATION REFERENCE</div>
+        <div style="font-family:'Courier New',monospace;font-size:14px;color:#9b6e09;letter-spacing:0.14em;margin-bottom:16px;">{reg_id}</div>
+        <p style="margin:0;font-size:12px;color:rgba(180,164,138,0.75);line-height:1.9;">
+          Please retain this reference number for all future correspondence with the Secretariat regarding your application. For queries or to update your preferences, contact us at the address below.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:28px 0 8px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(155,110,9,0.03);border:1px solid rgba(155,110,9,0.1);padding:18px 20px;">
+      <tr><td>
+        <div style="font-size:7px;letter-spacing:0.4em;text-transform:uppercase;color:rgba(155,110,9,0.4);margin-bottom:8px;">ALLOTMENT PROCESS DISCLOSURE</div>
+        <p style="margin:0;font-size:11px;color:rgba(160,144,118,0.65);line-height:1.85;">
+          Portfolio allotments at Mosaic MUN II are determined exclusively by an automated optimisation engine. Waitlist placement was assigned on the basis of preference compatibility and seat availability across the full delegate cohort. No human intervention was involved in this determination.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:28px 0 0;border-top:1px solid rgba(155,110,9,0.08);"></td></tr>
+  <tr><td style="padding-bottom:10px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td>
+        <img src="{SITE}/brand-assets/mosaic-logo-nobg.png" height="20" alt="Mosaic MUN" style="opacity:0.42;display:block;margin-bottom:7px;"/>
+        <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(90,78,56,0.7);">Mosaic Model United Nations II &nbsp;·&nbsp; Saraswati Global School, Faridabad</div>
+      </td>
+      <td align="right" valign="bottom">
+        <a href="https://instagram.com/mosaicmunofficial" style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(155,110,9,0.45);text-decoration:none;">Instagram &#8599;</a>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="padding:20px 0 52px;border-top:1px solid rgba(255,255,255,0.04);">
+    <p style="margin:0;font-size:9.5px;color:rgba(120,108,88,0.45);line-height:1.9;">
+      <strong style="color:rgba(155,110,9,0.35);letter-spacing:0.05em;">CONFIDENTIALITY NOTICE:</strong> This electronic mail message and any attachments are intended solely for the use of the individual or entity to whom they are addressed. If you have received this communication in error, please notify the sender immediately by reply email and permanently delete the original message and any copies from your system. Unauthorised review, use, disclosure, dissemination, forwarding, printing, or copying of this email and its attachments is strictly prohibited and may be unlawful.<br/><br/>
+      This message was generated and dispatched by the Mosaic MUN II automated allotment system on behalf of the Secretariat, Mosaic Model United Nations &mdash; Second Edition. &copy; 2026 Mosaic MUN. All rights reserved.
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
     try:
         r = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
             json={"from": "Mosaic MUN II <allotments@sandnco.lol>", "to": [to],
-                  "subject": "You are on the waitlist — Mosaic MUN II", "html": html},
+                  "subject": "Waitlist Notice — Mosaic MUN II Portfolio Allotment",
+                  "html": html},
             timeout=15,
         )
         if r.status_code in (200, 201):

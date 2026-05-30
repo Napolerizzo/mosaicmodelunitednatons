@@ -19,6 +19,7 @@ const BANK = {
   account: '10000000908043',
   ifsc: 'JIOP0000001',
   upi: '9811588040@ptyes',
+  amount: '₹2,200',
 }
 
 const STEPS = ['Profile', 'Delegation', 'Documentation']
@@ -727,10 +728,10 @@ export default function RegisterExternal() {
                           />
                         </div>
                         <div className="rf-bank-details">
-                          {Object.entries({ Name: BANK.name, 'Account No': BANK.account, IFSC: BANK.ifsc, UPI: BANK.upi }).map(([k, v]) => (
-                            <div className="rf-bank-row" key={k}>
-                              <span className="rf-bank-key">{k}</span>
-                              <span className="rf-bank-val">{v}</span>
+                          {Object.entries({ Amount: BANK.amount, Name: BANK.name, 'Account No': BANK.account, IFSC: BANK.ifsc, UPI: BANK.upi }).map(([k, v]) => (
+                            <div className="rf-bank-row" key={k} style={k === 'Amount' ? { borderBottom: '1px solid rgba(155,110,9,0.18)', paddingBottom: 12, marginBottom: 4 } : {}}>
+                              <span className="rf-bank-key" style={k === 'Amount' ? { color: 'var(--gold)', opacity: 0.7 } : {}}>{k}</span>
+                              <span className="rf-bank-val" style={k === 'Amount' ? { color: 'var(--gold)', fontSize: 18, fontWeight: 700, fontFamily: "'Montserrat',sans-serif", opacity: 1 } : {}}>{v}</span>
                             </div>
                           ))}
                         </div>
