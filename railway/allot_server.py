@@ -557,7 +557,7 @@ Queries: <a href="mailto:sameer.jhamb1719@gmail.com" style="color:#9b6e09;text-d
         r = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
-            json={"from": "Mosaic MUN II <allotments@mosaicmun.in>", "to": [to],
+            json={"from": "Mosaic MUN II <allotments@sandnco.lol>", "to": [to],
                   "subject": f"Your Allotment — {committee} | {portfolio} · Mosaic MUN II",
                   "html": html},
             timeout=15,
@@ -591,7 +591,7 @@ Queries: <a href="mailto:sameer.jhamb1719@gmail.com" style="color:#9b6e09;text-d
         r = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
-            json={"from": "Mosaic MUN II <allotments@mosaicmun.in>", "to": [to],
+            json={"from": "Mosaic MUN II <allotments@sandnco.lol>", "to": [to],
                   "subject": "You are on the waitlist — Mosaic MUN II", "html": html},
             timeout=15,
         )
