@@ -708,7 +708,13 @@ export default function RegisterExternal() {
                       <span className="rf-sub-label">Payment — Scan or transfer</span>
                       <div className="rf-qr-wrap">
                         <div className="rf-qr-box">
-                          <img src="/assets/qrcode.png" className="rf-qr-img" alt="Payment QR" />
+                          <QRCode
+                            value="upi://pay?pa=9811588040@ptyes&pn=Joginder%20Jhamb&cu=INR"
+                            size={130}
+                            fgColor="#9b6e09"
+                            bgColor="transparent"
+                            style={{ display: 'block' }}
+                          />
                         </div>
                         <div className="rf-bank-details">
                           {Object.entries({ Name: BANK.name, 'Account No': BANK.account, IFSC: BANK.ifsc, UPI: BANK.upi }).map(([k, v]) => (
