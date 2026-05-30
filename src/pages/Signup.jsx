@@ -1,20 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import '../styles/auth.css'
 
 export default function Signup() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState('')
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [confirm,    setConfirm]    = useState('')
+  const [error,      setError]      = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const { user } = useAuth()
+  const { loading: authLoading } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (user) navigate('/dashboard')
-  }, [user, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -24,11 +21,14 @@ export default function Signup() {
     if (password !== confirm) { setError('Passwords do not match.'); return }
     setSubmitting(true)
     try {
-      const { error: err } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password })
+      const { error: err } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      })
       if (err) throw err
       navigate('/dashboard')
     } catch (err) {
-      setError(err.message || 'Account creation failed.')
+      setError(err.message || 'Account creation failed. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -38,11 +38,11 @@ export default function Signup() {
     <div className="auth-page">
       <div className="auth-grain" aria-hidden="true" />
 
-      {/* Photo panel — different image from login */}
+      {/* Photo panel — different photo from login */}
       <div className="auth-photo" aria-hidden="true">
         <img
           className="auth-photo-img"
-          src="/brand-assets/5771A8D9-88FD-4A2A-9889-3E2CDA237CF6_4_5005_c.jpeg"
+          src="/brand-assets/DAE14D04-04CF-4105-83B9-8DD7736C3488_4_5005_c.jpeg"
           alt=""
         />
         <div className="auth-photo-veil" />
@@ -72,32 +72,39 @@ export default function Signup() {
             <span className="auth-eyebrow-text">Create Account</span>
           </div>
 
-          <h1 className="auth-title">Access<br/>granted.</h1>
+          <h1 className="auth-title">Access<br />granted.</h1>
           <p className="auth-subtitle">Create your delegate account to access the dashboard.</p>
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="auth-field">
               <label className="auth-label" htmlFor="su-email">Email Address</label>
-              <input id="su-email" type="email" className="auth-input"
+              <input
+                id="su-email" type="email" className="auth-input"
                 value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com" required autoComplete="email" autoFocus />
+                placeholder="your@email.com" required autoComplete="email" autoFocus
+              />
             </div>
             <div className="auth-field">
               <label className="auth-label" htmlFor="su-password">Password</label>
-              <input id="su-password" type="password" className="auth-input"
+              <input
+                id="su-password" type="password" className="auth-input"
                 value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters" required autoComplete="new-password" />
+                placeholder="Minimum 6 characters" required autoComplete="new-password"
+              />
             </div>
             <div className="auth-field">
               <label className="auth-label" htmlFor="su-confirm">Confirm Password</label>
-              <input id="su-confirm" type="password" className="auth-input"
+              <input
+                id="su-confirm" type="password" className="auth-input"
                 value={confirm} onChange={e => setConfirm(e.target.value)}
-                placeholder="Re-enter password" required autoComplete="new-password" />
+                placeholder="Re-enter password" required autoComplete="new-password"
+                onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
+              />
             </div>
 
             {error && <p className="auth-error" role="alert">{error}</p>}
 
-            <button type="submit" className="auth-submit" disabled={submitting}>
+            <button type="submit" className="auth-submit" disabled={submitting || authLoading}>
               {submitting ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
