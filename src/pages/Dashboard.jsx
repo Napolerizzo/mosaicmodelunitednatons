@@ -309,71 +309,85 @@ function TransferWidget({ registration, onClose, onSuccess }) {
   const doTransfer = async () => {
     if (!transferee.name.trim() || !transferee.email.trim()) { setError('Name and email are required.'); return }
     if (!/\S+@\S+\.\S+/.test(transferee.email)) { setError('Enter a valid email address.'); return }
+    if (!registration?.id) { setError('Registration data missing. Please refresh and try again.'); return }
+
     setSubmitting(true); setError('')
     try {
-      // 1. Create new registration for transferee with same portfolio/committee
       const newRegId = `TRF-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
-      const tempPwd  = Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,6).toUpperCase() + '!'
+      // Generate temp password: word + numbers + symbol
+      const tempPwd = Math.random().toString(36).slice(2,8) +
+                      Math.floor(1000 + Math.random() * 9000) + '!'
 
-      // Create auth account for transferee
-      const { data: authData } = await supabase.auth.admin?.createUser?.({
-        email: transferee.email.toLowerCase(), password: tempPwd, email_confirm: true,
-      }).catch(() => ({ data: null }))
+      // 1. Create auth account for transferee using public signUp
+      //    (admin.createUser is server-side only — not available in browser SDK)
+      let transfereeUserId = null
+      try {
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email:    transferee.email.toLowerCase(),
+          password: tempPwd,
+          options:  { data: { full_name: transferee.name.trim() } },
+        })
+        if (!signUpErr) transfereeUserId = signUpData?.user?.id || null
+        // If email already exists, that's fine — user_id stays null, they already have an account
+      } catch { /* non-blocking */ }
 
-      // Insert new registration for transferee
-      await supabase.from('registrations').insert({
-        registration_id:   newRegId,
-        type:              registration.type,
-        full_name:         transferee.name.trim(),
-        email:             transferee.email.toLowerCase(),
-        institution:       transferee.institution.trim() || 'Transferred',
-        allocated_committee: registration.allocated_committee,
-        allocated_portfolio: registration.allocated_portfolio,
-        allocation_status:  'allotted',
-        allotment_score:    registration.allotment_score,
-        allotment_confidence: registration.allotment_confidence,
-        is_allotment_stable: true,
-        mun_count:          0,
-        committee_pref_1:   registration.allocated_committee,
-        portfolio_pref_1:   registration.allocated_portfolio,
-        user_id:            authData?.user?.id || null,
+      // 2. Insert new registration for transferee
+      const { error: insertErr } = await supabase.from('registrations').insert({
+        registration_id:      newRegId,
+        type:                 registration.type || 'external',
+        full_name:            transferee.name.trim(),
+        email:                transferee.email.toLowerCase(),
+        institution:          transferee.institution.trim() || 'Transferred',
+        allocated_committee:  registration.allocated_committee,
+        allocated_portfolio:  registration.allocated_portfolio,
+        allocation_status:    'allotted',
+        allotment_score:      registration.allotment_score || 0.8,
+        allotment_confidence: registration.allotment_confidence || 0.9,
+        is_allotment_stable:  true,
+        mun_count:            0,
+        committee_pref_1:     registration.allocated_committee,
+        portfolio_pref_1:     registration.allocated_portfolio,
+        user_id:              transfereeUserId,
       })
+      if (insertErr) throw new Error(`Could not create transferee registration: ${insertErr.message}`)
 
-      // 2. Remove allotment from original delegate
-      await supabase.from('registrations').update({
+      // 3. Remove allotment from original delegate (match by registration_id — safer than id)
+      const { error: updateErr } = await supabase.from('registrations').update({
         allocation_status:   'transferred',
         allocated_committee: null,
         allocated_portfolio: null,
         updated_at:          new Date().toISOString(),
-      }).eq('id', registration.id)
+      }).eq('registration_id', registration.registration_id)
+      if (updateErr) throw new Error(`Could not update original registration: ${updateErr.message}`)
 
-      // 3. Send transfer notification emails via Railway engine
-      await fetch('https://mosaic-allot-engine-production.up.railway.app/send-transfer', {
-        method: 'POST',
+      // 4. Send emails via Railway (non-blocking — don't fail transfer if email fails)
+      fetch('https://mosaic-allot-engine-production.up.railway.app/send-transfer', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Secret': 'mosaic-mun-allot-2026' },
         body: JSON.stringify({
           original: {
-            name:  registration.full_name,
-            email: registration.email,
-            reg_id: registration.registration_id,
+            name:      registration.full_name,
+            email:     registration.email,
+            reg_id:    registration.registration_id,
             committee: registration.allocated_committee,
             portfolio: registration.allocated_portfolio,
           },
           transferee: {
-            name:     transferee.name.trim(),
-            email:    transferee.email.toLowerCase(),
-            reg_id:   newRegId,
-            password: tempPwd,
+            name:      transferee.name.trim(),
+            email:     transferee.email.toLowerCase(),
+            reg_id:    newRegId,
+            password:  tempPwd,
             committee: registration.allocated_committee,
             portfolio: registration.allocated_portfolio,
           },
         }),
-      }).catch(() => {}) // non-blocking
+      }).catch(e => console.warn('Transfer email failed (non-blocking):', e))
 
       setStep('done')
       onSuccess?.()
     } catch (e) {
-      setError('Transfer failed. Please try again or raise a query.')
+      console.error('Transfer error:', e)
+      setError(e.message || 'Transfer failed. Please raise a query to the Secretariat.')
     } finally {
       setSubmitting(false)
     }
