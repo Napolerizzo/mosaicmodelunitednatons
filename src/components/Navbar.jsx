@@ -388,6 +388,7 @@ const css = `
   .nav.scrolled { padding: 10px 20px; }
   .nav-links-list, .nav-cta, .nav-user-area { display: none; }
   .hamburger { display: flex; }
+  .nav-mobile-dashboard-btn { display: block !important; }
   .nav-mobile-user {
     display: flex;
     align-items: center;
@@ -509,9 +510,30 @@ export default function Navbar() {
         </div>
 
         {user && (
-          <span className="nav-mobile-user" aria-hidden="true">
-            {firstName.charAt(0)}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => navigate(user.email === 'admin@sameerjhamb.com' ? '/admin' : '/dashboard')}
+              style={{
+                display: 'none',
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '7px',
+                letterSpacing: '0.32em',
+                textTransform: 'uppercase',
+                color: 'var(--gold)',
+                background: 'rgba(155,110,9,0.1)',
+                border: '1px solid rgba(155,110,9,0.3)',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              className="nav-mobile-dashboard-btn"
+            >
+              Dashboard
+            </button>
+            <span className="nav-mobile-user" aria-hidden="true">
+              {firstName.charAt(0)}
+            </span>
+          </div>
         )}
 
         <button
