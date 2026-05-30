@@ -1203,6 +1203,8 @@ export default function Dashboard() {
   }, [user, authLoading, navigate, fetchRegistration])
 
   // Real-time: re-fetch when registration row changes (allotment updates)
+  // Only update state when the new status is a forward-progress change,
+  // not when it's 'transferred' (which clears the portfolio and confuses the UI)
   useEffect(() => {
     if (!user) return
     const channel = supabase
@@ -1211,7 +1213,12 @@ export default function Dashboard() {
         event: 'UPDATE', schema: 'public', table: 'registrations',
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        setRegistration(payload.new)
+        const newRow = payload.new
+        // Skip realtime update if the row was just transferred — the dashboard
+        // will show the "transferred" state from the widget itself, not from
+        // the realtime payload wiping out the portfolio fields
+        if (newRow.allocation_status === 'transferred') return
+        setRegistration(newRow)
       })
       .subscribe()
     return () => supabase.removeChannel(channel)
