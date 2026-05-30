@@ -111,11 +111,54 @@ async function logConversation({ delegate, message, reply, model }) {
   }
 }
 
+// Prompt injection patterns — common jailbreak attempts
+const INJECTION_PATTERNS = [
+  /ignore (previous|all|prior|above) instructions/i,
+  /you are now/i,
+  /pretend (you are|to be|you're)/i,
+  /act as (a|an|if)/i,
+  /disregard (your|all|previous)/i,
+  /forget (your|all|previous|everything)/i,
+  /new (persona|role|identity|instructions)/i,
+  /system prompt/i,
+  /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>/i,
+  /reveal (your|the) (system |)prompt/i,
+  /what (are|were) (your|the) instructions/i,
+]
+
+function sanitizeInput(text) {
+  if (!text || typeof text !== 'string') return ''
+  // Strip control characters and null bytes
+  let clean = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  // Limit length
+  clean = clean.slice(0, 2000)
+  return clean.trim()
+}
+
+function hasInjection(text) {
+  return INJECTION_PATTERNS.some(p => p.test(text))
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { message, delegate = {} } = req.body || {}
-  if (!message) return res.status(400).json({ error: 'message required' })
+  // Basic rate limiting via response headers (Vercel edge handles actual throttling)
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+
+  const { message: rawMessage, delegate = {} } = req.body || {}
+  if (!rawMessage) return res.status(400).json({ error: 'message required' })
+
+  // Sanitize and check for prompt injection
+  const message = sanitizeInput(rawMessage)
+  if (!message) return res.status(400).json({ error: 'Invalid message' })
+
+  if (hasInjection(message)) {
+    return res.json({
+      reply: "I am Mozart — I can only assist with Mosaic MUN II conference questions. I cannot process that request.\n\n— Mozart",
+      model: 'blocked'
+    })
+  }
 
   const systemPrompt = buildSystemPrompt(delegate)
 

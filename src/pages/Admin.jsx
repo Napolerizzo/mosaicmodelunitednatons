@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -756,17 +756,33 @@ const CSS = `
 
 export default function Admin() {
   const { user, logout, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
-  const [tab,   setTab]   = useState('COMMAND')
+  const navigate  = useNavigate()
+  const location  = useLocation()
+
+  // Persist active tab in URL hash so reload keeps the tab
+  const tabFromHash = TABS.includes(location.hash.slice(1).toUpperCase())
+    ? location.hash.slice(1).toUpperCase()
+    : 'COMMAND'
+  const [tab,   setTab]   = useState(tabFromHash)
   const [stats, setStats] = useState({ total:0,allotted:0,waitlisted:0,sgs:0,external:0,day1:0,day2:0,queriesOpen:0,mozartTotal:0 })
   const [activity, setActivity] = useState([])
   const [authChecked, setAuthChecked] = useState(false)
 
-  // Hard gate — wait for session restore, then check email
+  // Update URL hash when tab changes (no page reload)
+  const switchTab = useCallback((t) => {
+    setTab(t)
+    window.history.replaceState(null, '', `/admin#${t.toLowerCase().replace(' ','-')}`)
+  }, [])
+
+  // Hard gate — wait for session restore, then verify EXACT admin email
   useEffect(() => {
-    if (authLoading) return  // wait for Supabase to restore session
+    if (authLoading) return
     if (!user) { navigate('/'); return }
-    if (user.email !== ADMIN_EMAIL) { navigate('/'); return }
+    // Double-check: JWT email must match exactly, case-insensitive
+    if (user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      navigate('/')
+      return
+    }
     setAuthChecked(true)
   }, [user, authLoading, navigate])
 
@@ -810,8 +826,26 @@ export default function Admin() {
   useEffect(() => {
     if (!authChecked) return
     loadStats(); loadActivity()
-    const interval = setInterval(() => { loadStats(); loadActivity() }, 30000)
-    return () => clearInterval(interval)
+
+    // Poll every 20s as fallback
+    const interval = setInterval(() => { loadStats(); loadActivity() }, 20000)
+
+    // Real-time: re-load stats when any key table changes
+    const channel = supabase.channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' },
+        () => { loadStats(); loadActivity() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queries' },
+        () => { loadStats(); loadActivity() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entry_log' },
+        () => { loadStats(); loadActivity() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mozart_logs' },
+        () => loadStats())
+      .subscribe()
+
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
   }, [authChecked, loadStats, loadActivity])
 
   const triggerAllot = async () => {
@@ -850,7 +884,7 @@ export default function Admin() {
 
         <nav style={{ flex:1,padding:'16px 0',overflowY:'auto' }}>
           {TABS.map(t => (
-            <button key={t} className={`adm-tab-btn${tab===t?' active':''}`} onClick={()=>setTab(t)}>
+            <button key={t} className={`adm-tab-btn${tab===t?' active':''}`} onClick={()=>switchTab(t)}>
               {{ COMMAND:'⌘', DELEGATES:'⊞', 'ENTRY LOG':'⊡', QUERIES:'⊘', MOZART:'◈', SYSTEM:'⊕' }[t]} {t}
             </button>
           ))}

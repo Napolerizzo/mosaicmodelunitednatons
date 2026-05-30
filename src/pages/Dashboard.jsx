@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import QRCode from 'react-qr-code'
@@ -574,7 +574,6 @@ const CSS = `
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  // Use loading from AuthContext — prevents redirect before session is restored
   const { user, logout, loading: authLoading } = useAuth()
   const navigate          = useNavigate()
   const [tab, setTab]     = useState('OVERVIEW')
@@ -587,17 +586,52 @@ export default function Dashboard() {
     return () => document.getElementById('db-css')?.remove()
   }, [])
 
-  useEffect(() => {
-    // Don't do anything while Supabase is restoring the session
-    if (authLoading) return
-    // Session fully restored — if still no user, send to login
-    if (!user) { navigate('/login'); return }
-    // Fetch registration for this user
+  // Fetch registration — try user_id first, fall back to email match
+  const fetchRegistration = useCallback(async (u) => {
     setDataLoading(true)
-    supabase.from('registrations').select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false }).limit(1)
-      .then(({ data }) => { setRegistration(data?.[0] || null); setDataLoading(false) })
-  }, [user, authLoading, navigate])
+    try {
+      // Primary: match by user_id
+      let { data } = await supabase.from('registrations').select('*')
+        .eq('user_id', u.id).order('created_at', { ascending: false }).limit(1)
+
+      // Fallback: match by email (handles registrations made before account creation)
+      if (!data?.length && u.email) {
+        const res = await supabase.from('registrations').select('*')
+          .ilike('email', u.email).order('created_at', { ascending: false }).limit(1)
+        data = res.data
+
+        // Opportunistically link this registration to the user account
+        if (data?.length && !data[0].user_id) {
+          await supabase.from('registrations').update({ user_id: u.id })
+            .eq('id', data[0].id)
+        }
+      }
+      setRegistration(data?.[0] || null)
+    } finally {
+      setDataLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) { navigate('/login'); return }
+    fetchRegistration(user)
+  }, [user, authLoading, navigate, fetchRegistration])
+
+  // Real-time: re-fetch when registration row changes (allotment updates)
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel('registration-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'registrations',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        setRegistration(payload.new)
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [user])
 
   const handleLogout = async () => { await logout(); navigate('/') }
 

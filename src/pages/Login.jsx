@@ -15,11 +15,28 @@ export default function Login() {
     e.preventDefault()
     if (submitting) return
     setError('')
+
+    // Input validation — prevent malformed inputs before they hit Supabase
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!password || password.length < 1) {
+      setError('Password is required.')
+      return
+    }
+    // Cap lengths to prevent oversized payloads
+    if (cleanEmail.length > 254 || password.length > 256) {
+      setError('Invalid credentials.')
+      return
+    }
+
     setSubmitting(true)
     try {
-      const data = await login(email.trim().toLowerCase(), password)
+      const data = await login(cleanEmail, password)
       // Admin goes to admin portal, everyone else to dashboard
-      const loggedEmail = data?.user?.email || email.trim().toLowerCase()
+      const loggedEmail = data?.user?.email || cleanEmail
       navigate(loggedEmail === 'admin@sameerjhamb.com' ? '/admin' : '/dashboard')
     } catch (err) {
       setError(sanitizeError(err))

@@ -17,12 +17,27 @@ export default function Signup() {
     e.preventDefault()
     if (submitting) return
     setError('')
+
+    // Validate and sanitize
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (cleanEmail.length > 254) { setError('Email address is too long.'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
+    if (password.length > 256) { setError('Password is too long.'); return }
     if (password !== confirm) { setError('Passwords do not match.'); return }
+    // Block signup with admin email
+    if (cleanEmail === 'admin@sameerjhamb.com') {
+      setError('This email cannot be used for delegate registration.')
+      return
+    }
+
     setSubmitting(true)
     try {
       const { error: err } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password,
       })
       if (err) throw err
