@@ -800,7 +800,7 @@ export default function RegisterSGS() {
   const [showStamp, setShowStamp]         = useState(false)
 
   const [form, setForm] = useState({
-    full_name: '', class_year: '',
+    full_name: '', class_year: '', email: '', phone: '', mun_count: '',
     committee_pref_1: '', committee_pref_2: '', committee_pref_3: '',
     portfolio_pref_1: '', portfolio_pref_2: '', portfolio_pref_3: '',
     id_card: null, payment_screenshot: null,
@@ -820,6 +820,9 @@ export default function RegisterSGS() {
     if (step === 0) {
       if (!form.full_name.trim())  e.full_name  = 'Full name is required.'
       if (!form.class_year.trim()) e.class_year = 'Class and section is required.'
+      if (!form.email.trim())      e.email      = 'Email address is required.'
+      if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email.'
+      if (!form.phone.trim())      e.phone      = 'Phone number is required.'
     }
     if (step === 1) {
       if (!form.committee_pref_1) e.committee_pref_1 = 'First committee preference is required.'
@@ -873,6 +876,9 @@ export default function RegisterSGS() {
         full_name:        form.full_name.trim(),
         institution:      'Saraswati Global School',
         class_year:       form.class_year.trim(),
+        email:            form.email.trim().toLowerCase(),
+        phone:            form.phone.trim(),
+        mun_count:        form.mun_count ? parseInt(form.mun_count, 10) : 0,
         committee_pref_1: form.committee_pref_1 || null,
         committee_pref_2: form.committee_pref_2 || null,
         committee_pref_3: form.committee_pref_3 || null,
@@ -1000,6 +1006,41 @@ export default function RegisterSGS() {
                         autoComplete="off"
                       />
                       {errors.class_year && <span className="rf-error">{errors.class_year}</span>}
+                    </div>
+
+                    <div className="rf-field-row">
+                      <div>
+                        <label className="rf-label" htmlFor="sgs-email">Email Address</label>
+                        <input id="sgs-email" className="rf-input" type="email"
+                          value={form.email}
+                          onChange={e => set('email', e.target.value)}
+                          placeholder="your@email.com"
+                          autoComplete="email"
+                        />
+                        {errors.email && <span className="rf-error">{errors.email}</span>}
+                      </div>
+                      <div>
+                        <label className="rf-label" htmlFor="sgs-phone">Phone Number</label>
+                        <input id="sgs-phone" className="rf-input" type="tel"
+                          value={form.phone}
+                          onChange={e => set('phone', e.target.value)}
+                          placeholder="+91 XXXXX XXXXX"
+                          autoComplete="tel"
+                        />
+                        {errors.phone && <span className="rf-error">{errors.phone}</span>}
+                      </div>
+                    </div>
+
+                    <div className="rf-field">
+                      <label className="rf-label" htmlFor="sgs-mun">MUNs Attended</label>
+                      <input id="sgs-mun" className="rf-input" type="number"
+                        min="0" max="50"
+                        value={form.mun_count}
+                        onChange={e => set('mun_count', e.target.value)}
+                        placeholder="0"
+                        autoComplete="off"
+                      />
+                      <span className="rf-hint">Total Model UN conferences attended before this one.</span>
                     </div>
 
                     <div className="rf-nav">

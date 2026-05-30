@@ -375,7 +375,7 @@ export default function RegisterExternal() {
   const [form, setForm] = useState({
     full_name: '', email: '', alt_email: '',
     phone: '', alt_phone: '', institution: '',
-    class_year: '', age: '', city: '', state: '',
+    class_year: '', age: '', city: '', state: '', mun_count: '',
     committee_pref_1: '', committee_pref_2: '', committee_pref_3: '',
     portfolio_pref_1: '', portfolio_pref_2: '', portfolio_pref_3: '',
     payment_screenshot: null,
@@ -453,6 +453,7 @@ export default function RegisterExternal() {
         institution:      form.institution.trim(),
         class_year:       form.class_year.trim() || null,
         age:              form.age ? parseInt(form.age, 10) : null,
+        mun_count:        form.mun_count ? parseInt(form.mun_count, 10) : 0,
         city:             form.city.trim(),
         state:            form.state.trim() || null,
         committee_pref_1: form.committee_pref_1 || null,
@@ -625,6 +626,17 @@ export default function RegisterExternal() {
                           onChange={e => set('state', e.target.value)} placeholder="Your state"
                         />
                       </div>
+                    </div>
+
+                    <div className="rf-field">
+                      <label className="rf-label">MUNs Attended</label>
+                      <input className="rf-input" type="number" min="0" max="50"
+                        value={form.mun_count}
+                        onChange={e => set('mun_count', e.target.value)}
+                        placeholder="0"
+                        autoComplete="off"
+                      />
+                      <span className="rf-hint">Total Model UN conferences attended before this one.</span>
                     </div>
 
                     <div className="rf-nav">
