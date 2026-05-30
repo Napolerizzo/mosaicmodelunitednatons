@@ -29,9 +29,9 @@ async function buildJwt(clientEmail: string, privateKeyPem: string, scope: strin
   return `${unsigned}.${base64url(String.fromCharCode(...new Uint8Array(sigBytes)))}`
 }
 
-async function getDriveToken(): Promise<string | null> {
-  const clientEmail = Deno.env.get('GOOGLE_CLIENT_EMAIL')
-  const privateKey  = Deno.env.get('GOOGLE_PRIVATE_KEY')
+async function getDriveToken(cfg: Record<string, string>): Promise<string | null> {
+  const clientEmail = cfg.GOOGLE_CLIENT_EMAIL
+  const privateKey  = cfg.GOOGLE_PRIVATE_KEY
   if (!clientEmail || !privateKey) return null
 
   const pem = privateKey.replace(/\\n/g, '\n')
@@ -50,11 +50,13 @@ export async function copyFilesToDrive(params: {
   supabaseStoragePaths: Array<{ path: string; label: string }>
   supabaseUrl: string
   supabaseServiceRoleKey: string
+  cfg: Record<string, string>
 }): Promise<void> {
-  const folderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
-  if (!folderId) { console.warn('GOOGLE_DRIVE_FOLDER_ID not set — skipping Drive sync'); return }
+  const { cfg } = params
+  const folderId = cfg.GOOGLE_DRIVE_FOLDER_ID
+  if (!folderId) { console.warn('GOOGLE_DRIVE_FOLDER_ID not in edge_config — skipping Drive sync'); return }
 
-  const token = await getDriveToken()
+  const token = await getDriveToken(cfg)
   if (!token) { console.warn('Could not get Drive token — skipping Drive sync'); return }
 
   for (const { path, label } of params.supabaseStoragePaths) {

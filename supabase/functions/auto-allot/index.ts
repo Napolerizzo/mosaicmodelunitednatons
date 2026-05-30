@@ -3,23 +3,32 @@
 //
 // Concurrency safety:
 //  1. try_acquire_allotment_lock() serialises runs — if another run is already
-//     executing, this invocation returns immediately (the active run already
-//     fetched the newly registered delegate).
+//     executing, this invocation returns immediately.
 //  2. claim_portfolio() uses an atomic UPDATE WHERE status='vacant' — two
 //     concurrent claims on the same slot can never both succeed.
+//
+// Secrets: loaded from edge_config table (service role bypasses RLS).
+// Never reads from Deno.env for application secrets.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   runMatching, calibrateWeights, resolvePreferences,
   type Portfolio, type Delegate, type FlaggedRequest,
 } from './algorithm.ts'
-import { consultGemini }                      from './gemini.ts'
+import { consultGemini }                        from './gemini.ts'
 import { sendAllotmentEmail, sendWaitlistEmail } from './email.ts'
-import { appendToSheet }                       from './sheets.ts'
-import { copyFilesToDrive }                    from './drive.ts'
+import { appendToSheet }                         from './sheets.ts'
+import { copyFilesToDrive }                      from './drive.ts'
 
+// Supabase auto-injects these two — no need to add to edge_config
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+async function loadConfig(db: ReturnType<typeof createClient>): Promise<Record<string, string>> {
+  const { data, error } = await db.from('edge_config').select('key, value')
+  if (error) { console.error('loadConfig error:', error); return {} }
+  return Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]))
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
@@ -29,28 +38,29 @@ Deno.serve(async (req: Request) => {
   const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
   // ── Acquire mutex ────────────────────────────────────────────────────────────
-  // Only ONE allotment run executes at a time. If another is active, we return
-  // 200 immediately — the active run already read all pending delegates including
-  // whoever just triggered this invocation.
   const { data: runId, error: lockErr } = await db.rpc('try_acquire_allotment_lock')
   if (lockErr) {
     console.error('Lock RPC error:', lockErr)
     return new Response(JSON.stringify({ error: 'Lock acquisition failed' }), { status: 500 })
   }
   if (!runId) {
-    console.log('Another allotment run is active — skipping (delegate will be included in that run)')
+    console.log('Another allotment run is active — skipping')
     return new Response(JSON.stringify({ skipped: true, reason: 'mutex_locked' }), { status: 200 })
   }
 
   console.log(`Allotment run started: ${runId}`)
 
   try {
-    // ── 1. Fetch all pending registrations ──────────────────────────────────────
+    // ── Load all secrets from edge_config ──────────────────────────────────────
+    const C = await loadConfig(db)
+    console.log(`Config loaded: ${Object.keys(C).length} keys`)
+
+    // ── Fetch pending registrations ────────────────────────────────────────────
     const { data: rawDelegates, error: regErr } = await db
       .from('registrations').select('*').order('created_at', { ascending: true })
     if (regErr) throw regErr
 
-    // ── 2. Fetch vacant portfolio slots ─────────────────────────────────────────
+    // ── Fetch vacant portfolio slots ───────────────────────────────────────────
     const { data: rawPortfolios, error: portErr } = await db
       .from('portfolios').select('*').eq('status', 'vacant')
     if (portErr) throw portErr
@@ -69,14 +79,13 @@ Deno.serve(async (req: Request) => {
       knownPortfoliosByCommittee.get(p.committee)!.push(p.portfolio)
     }
 
-    // ── 3. Build delegate list (skip already-confirmed allotments) ───────────────
+    // ── Build delegate list (skip confirmed allotments) ────────────────────────
     const allFlagged: FlaggedRequest[] = []
     const delegates: Delegate[] = []
     const seenEmails = new Map<string, number>()
 
     for (let order = 0; order < (rawDelegates ?? []).length; order++) {
       const r: any = rawDelegates![order]
-      // Never re-process delegates who already have a confirmed allocation
       if (['allotted', 'contested'].includes(r.allocation_status)) continue
 
       const email = (r.email ?? '').toLowerCase().trim()
@@ -112,11 +121,12 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ message: 'No pending delegates' }), { status: 200 })
     }
 
-    // ── 4. Gemini: resolve freeform portfolio requests ───────────────────────────
+    // ── Gemini: resolve freeform portfolio requests ────────────────────────────
     for (const flag of allFlagged) {
       const [committee, portfolio] = flag.resolved_to.split(' | ')
       const existing = knownPortfoliosByCommittee.get(committee) ?? []
-      const decision = await consultGemini(committee, portfolio, existing)
+      const decision = await consultGemini(committee, portfolio, existing, C)
+
       if (decision.add) {
         const newCode = `GEN-${Date.now()}`
         const { data: newPort } = await db.from('portfolios').insert({
@@ -138,119 +148,122 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ── 5. Run Hungarian matching algorithm ──────────────────────────────────────
+    // ── Run matching algorithm ─────────────────────────────────────────────────
     const { prefWeight, expWeight } = calibrateWeights(activeDelegates)
     const results = runMatching(activeDelegates, portfolios, prefWeight, expWeight)
 
-    // ── 6. Persist results with atomic portfolio claims ──────────────────────────
-    //
-    // For each allotted delegate, call claim_portfolio() which does:
-    //   UPDATE portfolios SET status='allotted' WHERE id=X AND status='vacant'
-    // This is atomic in Postgres — two concurrent claims on the same slot
-    // can't both return true. If we lose the race, the delegate is left as
-    // 'pending' and will be picked up on the next run.
-
+    // ── Persist results, claim slots, sync, email ──────────────────────────────
     let claimedCount = 0, skippedClaims = 0, waitlistedCount = 0
 
     for (const result of results) {
       const { delegate, portfolio, score, confidence, is_stable, stability_rate } = result
+      let thisResultClaimed = false
 
       if (portfolio) {
-        // Atomically claim the portfolio slot
+        // Atomic claim — two concurrent runs can never both return true for same slot
         const { data: claimed, error: claimErr } = await db.rpc('claim_portfolio', {
           p_portfolio_id: portfolio.id,
           p_delegate_id: delegate.id,
         })
 
         if (claimErr || !claimed) {
-          // Slot was taken by a concurrent run between our read and this write.
-          // Leave this delegate as 'pending' — they'll be re-processed next run
-          // with the updated (already-allotted) portfolio removed from the pool.
           skippedClaims++
-          console.warn(`Portfolio ${portfolio.committee}|${portfolio.portfolio} already claimed — delegate ${delegate.full_name} re-queued`)
+          console.warn(`${portfolio.committee}|${portfolio.portfolio} already claimed — ${delegate.full_name} re-queued`)
           continue
         }
 
         claimedCount++
+        thisResultClaimed = true
 
-        // Update registration row
         await db.from('registrations').update({
-          allocation_status:   is_stable ? 'allotted' : 'contested',
-          allocated_committee: portfolio.committee,
-          allocated_portfolio: portfolio.portfolio,
-          allotment_score:     score,
+          allocation_status:    is_stable ? 'allotted' : 'contested',
+          allocated_committee:  portfolio.committee,
+          allocated_portfolio:  portfolio.portfolio,
+          allotment_score:      score,
           allotment_confidence: confidence,
-          allotment_stability: stability_rate,
-          is_allotment_stable: is_stable,
-          updated_at:          new Date().toISOString(),
+          allotment_stability:  stability_rate,
+          is_allotment_stable:  is_stable,
+          updated_at:           new Date().toISOString(),
         }).eq('id', delegate.id)
 
       } else {
-        // Delegate couldn't be matched (all preferences gated or no seats)
         waitlistedCount++
         await db.from('registrations').update({
-          allocation_status:   'waitlisted',
-          allotment_score:     0,
+          allocation_status:    'waitlisted',
+          allotment_score:      0,
           allotment_confidence: 0,
-          allotment_stability: 0,
-          is_allotment_stable: false,
-          updated_at:          new Date().toISOString(),
+          allotment_stability:  0,
+          is_allotment_stable:  false,
+          updated_at:           new Date().toISOString(),
         }).eq('id', delegate.id)
       }
 
-      // Post-allotment: sync to Sheets, Drive, email
+      // Sync to Sheets + Drive (always, regardless of allotted/waitlisted)
       const { data: fullRow } = await db.from('registrations').select('*').eq('id', delegate.id).single()
 
       if (fullRow) {
-        await appendToSheet({ type: delegate.type as 'sgs' | 'external', row: fullRow })
+        await appendToSheet({ type: delegate.type as 'sgs' | 'external', row: fullRow, cfg: C })
       }
 
       if (fullRow?.id_card_url || fullRow?.payment_screenshot_url) {
         await copyFilesToDrive({
           registrationId: delegate.registration_id ?? delegate.id,
           supabaseStoragePaths: [
-            { path: fullRow.id_card_url,          label: 'id_card'  },
+            { path: fullRow.id_card_url,           label: 'id_card'  },
             { path: fullRow.payment_screenshot_url, label: 'payment' },
           ].filter(f => f.path),
-          supabaseUrl:           SUPABASE_URL,
+          supabaseUrl:            SUPABASE_URL,
           supabaseServiceRoleKey: SERVICE_ROLE_KEY,
+          cfg: C,
         })
       }
 
+      // Send email — one per delegate, correct type
       if (delegate.email) {
-        if (portfolio && claimedCount > 0) {
+        if (portfolio && thisResultClaimed) {
           await sendAllotmentEmail({
-            to: delegate.email, name: delegate.full_name,
-            committee: portfolio.committee, portfolio: portfolio.portfolio,
+            to:             delegate.email,
+            name:           delegate.full_name,
+            committee:      portfolio.committee,
+            portfolio:      portfolio.portfolio,
             registrationId: delegate.registration_id ?? delegate.id,
-            confidence, isStable: is_stable,
+            confidence,
+            isStable:       is_stable,
+            cfg:            C,
           })
         } else if (!portfolio) {
           await sendWaitlistEmail({
-            to: delegate.email, name: delegate.full_name,
+            to:             delegate.email,
+            name:           delegate.full_name,
             registrationId: delegate.registration_id ?? delegate.id,
+            cfg:            C,
           })
         }
       }
     }
 
     const summary = {
-      run_id:         runId,
-      processed:      activeDelegates.length,
-      claimed:        claimedCount,
-      waitlisted:     waitlistedCount,
-      re_queued:      skippedClaims,    // will be picked up on next registration trigger
-      flagged:        allFlagged.length,
+      run_id:    runId,
+      processed: activeDelegates.length,
+      claimed:   claimedCount,
+      waitlisted: waitlistedCount,
+      re_queued: skippedClaims,
+      flagged:   allFlagged.length,
       prefWeight, expWeight,
     }
     console.log('auto-allot complete:', summary)
-    return new Response(JSON.stringify(summary), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify(summary), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
 
   } catch (err) {
     console.error('auto-allot error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   } finally {
-    // Always release the lock — even on error or timeout
     await db.rpc('release_allotment_lock', { p_run_id: runId }).catch(() => {})
   }
 })

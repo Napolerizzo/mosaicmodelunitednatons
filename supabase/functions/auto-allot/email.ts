@@ -231,9 +231,10 @@ export async function sendAllotmentEmail(params: {
   registrationId: string
   confidence: number
   isStable: boolean
+  cfg: Record<string, string>
 }): Promise<void> {
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) { console.error('RESEND_API_KEY not set'); return }
+  const apiKey = params.cfg.RESEND_API_KEY
+  if (!apiKey) { console.error('RESEND_API_KEY not in edge_config'); return }
 
   const html = allotmentHtml(params)
   await fetch(RESEND_API, {
@@ -252,9 +253,10 @@ export async function sendWaitlistEmail(params: {
   to: string
   name: string
   registrationId: string
+  cfg: Record<string, string>
 }): Promise<void> {
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) { console.error('RESEND_API_KEY not set'); return }
+  const apiKey = params.cfg.RESEND_API_KEY
+  if (!apiKey) { console.error('RESEND_API_KEY not in edge_config'); return }
 
   const html = waitlistHtml(params)
   await fetch(RESEND_API, {

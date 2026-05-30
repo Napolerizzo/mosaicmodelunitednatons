@@ -56,9 +56,10 @@ export interface GeminiDecision {
 export async function consultGemini(
   committee: string,
   requestedPortfolio: string,
-  existingPortfolios: string[]
+  existingPortfolios: string[],
+  cfg: Record<string, string>
 ): Promise<GeminiDecision> {
-  const apiKey = Deno.env.get('GEMINI_API_KEY')
+  const apiKey = cfg.GEMINI_API_KEY
   if (!apiKey) return { add: false, reason: 'Gemini API key not configured', canonical_name: requestedPortfolio }
 
   const context = COMMITTEE_FULL_CONTEXT[committee] ?? `${committee} — Model UN committee. Be conservative.`

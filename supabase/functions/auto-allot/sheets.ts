@@ -30,12 +30,11 @@ function base64url(input: string | Uint8Array): string {
   return str.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 }
 
-async function getAccessToken(scope: string): Promise<string | null> {
-  const clientEmail = Deno.env.get('GOOGLE_CLIENT_EMAIL')
-  const privateKey  = Deno.env.get('GOOGLE_PRIVATE_KEY')
+async function getAccessToken(scope: string, cfg: Record<string, string>): Promise<string | null> {
+  const clientEmail = cfg.GOOGLE_CLIENT_EMAIL
+  const privateKey  = cfg.GOOGLE_PRIVATE_KEY
   if (!clientEmail || !privateKey) return null
 
-  // The private key stored in env may have literal \n — convert to real newlines
   const pem = privateKey.replace(/\\n/g, '\n')
 
   const jwt = await buildJwt(clientEmail, pem, scope)
@@ -51,17 +50,19 @@ async function getAccessToken(scope: string): Promise<string | null> {
 export async function appendToSheet(params: {
   type: 'sgs' | 'external'
   row: Record<string, unknown>
+  cfg: Record<string, string>
 }): Promise<void> {
-  const sheetIdSGS      = Deno.env.get('GOOGLE_SHEET_ID_SGS')
-  const sheetIdExternal = Deno.env.get('GOOGLE_SHEET_ID_EXTERNAL')
+  const { cfg } = params
+  const sheetIdSGS      = cfg.GOOGLE_SHEET_ID_SGS
+  const sheetIdExternal = cfg.GOOGLE_SHEET_ID_EXTERNAL
 
   if (!sheetIdSGS || !sheetIdExternal) {
-    console.warn('Google Sheet IDs not configured — skipping sheet sync')
+    console.warn('Google Sheet IDs not in edge_config — skipping sheet sync')
     return
   }
 
   const sheetId = params.type === 'sgs' ? sheetIdSGS : sheetIdExternal
-  const token   = await getAccessToken('https://www.googleapis.com/auth/spreadsheets')
+  const token   = await getAccessToken('https://www.googleapis.com/auth/spreadsheets', cfg)
   if (!token) { console.warn('Could not get Google token — skipping sheet sync'); return }
 
   const COLUMNS = [
