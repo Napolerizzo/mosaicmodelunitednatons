@@ -457,34 +457,39 @@ def norm_exp(mc, all_counts):
     mx = max(all_counts) if all_counts else 1
     return math.log1p(mc) / math.log1p(mx) if mx > 0 else 0.0
 
-def build_cost_matrix(delegates, slots, all_counts, pw, ew):
+def build_cost_matrix(delegates, slots, all_counts, pw, ew, allow_open_allot: bool = False):
+    """
+    Build cost matrix.
+    allow_open_allot=False (default): delegates only compete for their stated preferences.
+                                       No valid prefs → INF_COST everywhere (they get second pass).
+    allow_open_allot=True (second pass): unallocated delegates compete for ANY remaining vacant slot
+                                         at a low fixed score so they get something rather than nothing.
+    """
     n  = max(len(delegates), len(slots))
     cm = np.full((n, n), INF_COST)
     sm = np.zeros((len(delegates), len(slots)))
 
     for i, d in enumerate(delegates):
-        # ── CRITICAL FIX: delegates with no valid prefs get INF_COST everywhere ──
-        if not d.has_valid_preferences:
-            # Leave entire row as INF_COST — they will be unallocated by Hungarian
-            continue
-
         exp_n = norm_exp(d.mun_count, all_counts)
         pm = {f"{p.committee}|{p.portfolio}": p.rank for p in d.preferences if not p.is_freeform}
 
         for j, slot in enumerate(slots):
             if d.mun_count < slot.min_experience:
-                continue  # experience gate — leave INF_COST
+                continue  # experience gate
 
-            key   = slot.key
+            key = slot.key
             if key in pm:
-                # Delegate has this slot in their preferences — score it
-                rank  = pm[key]
-                score = pw * PREF_SCORES[rank] + ew * exp_n
+                # Preferred slot — score based on rank
+                score = pw * PREF_SCORES[pm[key]] + ew * exp_n
                 cm[i][j] = 1.0 - score
                 sm[i][j] = score
-            # else: slot NOT in preferences → leave INF_COST
-            # This means delegates ONLY compete for slots they actually want.
-            # No auto-allotment to random slots.
+            elif allow_open_allot and not d.has_valid_preferences:
+                # Second pass: no valid prefs — assign anywhere at minimum score
+                # Slight exp bonus so more experienced delegates get marginally better slots
+                score = 0.04 + ew * exp_n * 0.1
+                cm[i][j] = 1.0 - score
+                sm[i][j] = score
+            # else: slot not in prefs AND not open-allot pass → INF_COST
 
     return cm, sm
 
@@ -516,13 +521,25 @@ def run_monte_carlo(delegates, slots, all_counts, pw, ew):
     return stab
 
 def run_matching(delegates, portfolios, pw, ew):
+    """
+    Two-pass matching. Everyone gets allotted — no waitlist.
+
+    Pass 1: Preference-based. Delegates compete only for their stated preferences.
+    Pass 2: Open allotment. Delegates still unallocated after pass 1 (no valid prefs,
+            or all prefs taken) compete for any remaining vacant slot.
+    """
     slots      = [p for port in portfolios for _ in range(port.seats) for p in [port]]
     all_counts = [d.mun_count for d in delegates]
-    stab       = run_monte_carlo(delegates, slots, all_counts, pw, ew)
-    cm, sm     = build_cost_matrix(delegates, slots, all_counts, pw, ew)
+
+    # ── Pass 1: preference-based ──────────────────────────────────────────────
+    stab   = run_monte_carlo(delegates, slots, all_counts, pw, ew)
+    cm, sm = build_cost_matrix(delegates, slots, all_counts, pw, ew, allow_open_allot=False)
     rows, cols = linear_sum_assignment(cm)
 
-    results = []
+    results      = []
+    allocated_ids = set()
+    taken_slot_ids = set()
+
     for i, j in zip(rows, cols):
         if i >= len(delegates): continue
         d = delegates[i]
@@ -536,17 +553,38 @@ def run_matching(delegates, portfolios, pw, ew):
             )
             score = float(sm[i][j])
             conf  = compute_confidence(i, j, sm, cm)
-            reason = f"Pref#{pref_rank}|Score:{score:.4f}|Stability:{s['rate']*100:.0f}%" if pref_rank else f"Auto|Score:{score:.4f}"
+            reason = f"Pref#{pref_rank}|Score:{score:.4f}|Stability:{s['rate']*100:.0f}%" if pref_rank else f"Open allot|Score:{score:.4f}"
             results.append(AllocationResult(d, port, pref_rank, round(score,5), round(conf,3), s["stable"], round(s["rate"],3), reason))
+            allocated_ids.add(d.id)
+            taken_slot_ids.add(id(port))
+
+    # ── Pass 2: open allotment for unallocated delegates ─────────────────────
+    unallocated = [d for d in delegates if d.id not in allocated_ids]
+    if unallocated:
+        # Remaining vacant slots (not taken in pass 1)
+        remaining_slots = [s for s in slots if id(s) not in taken_slot_ids]
+
+        if remaining_slots:
+            cm2, sm2 = build_cost_matrix(unallocated, remaining_slots, all_counts, pw, ew, allow_open_allot=True)
+            rows2, cols2 = linear_sum_assignment(cm2)
+            for i, j in zip(rows2, cols2):
+                if i >= len(unallocated): continue
+                d = unallocated[i]
+                if j < len(remaining_slots) and cm2[i][j] < INF_COST:
+                    port = remaining_slots[j]
+                    score = float(sm2[i][j])
+                    conf  = compute_confidence(i, j, sm2, cm2)
+                    results.append(AllocationResult(d, port, None, round(score,5), round(conf,3),
+                                                    True, 1.0, f"Best-fit allot (no valid prefs)|Score:{score:.4f}"))
+                    allocated_ids.add(d.id)
+                else:
+                    # Extremely unlikely — more slots than delegates
+                    results.append(AllocationResult(d, None, None, 0.0, 0.0, False, 0.0,
+                                                    "No slots remaining — truly impossible"))
         else:
-            # Unallocated — log the specific reason
-            if not d.has_valid_preferences:
-                reason = "UNALLOCATED — all preferences were invalid/nonsense (no valid portfolio in matrix)"
-            elif all(p.is_freeform for p in d.preferences):
-                reason = "UNALLOCATED — all preferences freeform and AI rejected them"
-            else:
-                reason = "UNALLOCATED — preferred portfolios all taken or experience-gated"
-            results.append(AllocationResult(d, None, None, 0.0, 0.0, False, 0.0, reason))
+            for d in unallocated:
+                results.append(AllocationResult(d, None, None, 0.0, 0.0, False, 0.0,
+                                                "Conference at capacity — no vacant slots remain"))
 
     return results
 

@@ -16,6 +16,7 @@ import RegisterExternal from './pages/RegisterExternal'
 import Portfolio from './pages/Portfolio'
 import Dashboard from './pages/Dashboard'
 import CreateAccount from './pages/CreateAccount'
+import Signup from './pages/Signup'
 
 function MainPage() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-account" element={<CreateAccount />} />
+          <Route path="/signup" element={<Signup />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

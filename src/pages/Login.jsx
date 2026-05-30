@@ -421,7 +421,9 @@ export default function Login() {
 
           <p className="auth-switch">
             No account?{' '}
-            <Link to="/register">Request access</Link>
+            <Link to="/signup">Create one</Link>
+            {' '}·{' '}
+            <Link to="/register">Register for conference</Link>
           </p>
         </div>
       </div>

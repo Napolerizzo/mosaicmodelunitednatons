@@ -493,6 +493,7 @@ export default function Navbar() {
           {user ? (
             <div className="nav-user-area">
               <span className="nav-user-name">{firstName}</span>
+              <button className="nav-user-exit" onClick={() => navigate('/dashboard')} style={{ marginRight: 8, opacity: 0.7, background: 'none', border: '1px solid rgba(155,110,9,0.35)', color: 'var(--gold)', padding: '6px 14px', fontSize: '7.5px', letterSpacing: '0.3em', textTransform: 'uppercase', cursor: 'pointer' }}>Dashboard</button>
               <button className="nav-user-exit" onClick={handleSignOut}>Exit</button>
             </div>
           ) : (
@@ -595,8 +596,16 @@ export default function Navbar() {
               transition={{ delay: 0.32, duration: 0.4 }}
             >
               {user ? (
-                <div className="mm-user-row">
-                  <span className="mm-user-name">{firstName}</span>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  <div className="mm-user-row" style={{ marginBottom:4 }}>
+                    <span className="mm-user-name">{firstName}</span>
+                  </div>
+                  <a className="mm-auth-btn" href="/dashboard"
+                    onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/dashboard') }}
+                    style={{ opacity:1, color:'var(--gold)' }}
+                  >
+                    My Dashboard
+                  </a>
                   <button className="mm-auth-btn" onClick={handleSignOut}>Sign Out</button>
                 </div>
               ) : (
@@ -611,6 +620,11 @@ export default function Navbar() {
                     onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/login') }}
                   >
                     Sign In
+                  </a>
+                  <a className="mm-auth-btn" href="/signup"
+                    onClick={e => { e.preventDefault(); setMenuOpen(false); navigate('/signup') }}
+                  >
+                    Create Account
                   </a>
                 </div>
               )}
