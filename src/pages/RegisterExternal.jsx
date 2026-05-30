@@ -854,15 +854,33 @@ export default function RegisterExternal() {
             <p className="rf-credential-note">
               Save your registration ID. Allocation notifications will be sent to{' '}
               <strong style={{ color:'var(--gold)', opacity:0.7 }}>{registration?.email}</strong>.
-              Contact the Secretariat at{' '}
-              <a href="mailto:sameer.jhamb1719@gmail.com" style={{ color:'var(--gold)', opacity:0.7 }}>sameer.jhamb1719@gmail.com</a>
-              {' '}for any queries.
             </p>
 
-            <div className="rf-credential-actions">
-              <Link to="/" className="rf-action-btn">Return to site</Link>
-              <Link to="/portfolio" className="rf-action-btn">View Portfolio Matrix</Link>
-            </div>
+            {/* Dashboard CTA */}
+            <motion.div
+              initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+              transition={{ duration:0.8, delay:1.1, ease:[0.22,1,0.36,1] }}
+              style={{ width:'100%', maxWidth:520, marginTop:24, border:'1px solid rgba(155,110,9,0.25)', background:'rgba(155,110,9,0.04)', padding:'24px 24px' }}
+            >
+              <div style={{ fontSize:'7px', letterSpacing:'0.44em', textTransform:'uppercase', color:'rgba(155,110,9,0.5)', marginBottom:10 }}>DELEGATE PORTAL</div>
+              <div style={{ fontFamily:"'Montserrat',sans-serif", fontWeight:900, fontSize:'1.2rem', letterSpacing:'-0.03em', color:'#e8e4dc', marginBottom:10 }}>
+                Track your allotment.<br/>Talk to Mozart.
+              </div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:13, color:'#b5a88e', lineHeight:1.65, marginBottom:20 }}>
+                Create your delegate account to access your dashboard — view your allotment status, get a committee brief from Mozart, and raise queries to the Secretariat.
+              </div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                <Link
+                  to={`/create-account?email=${encodeURIComponent(registration?.email || '')}&reg=${encodeURIComponent(registration?.registration_id || '')}`}
+                  style={{ background:'var(--gold)', color:'#000', padding:'13px 24px', fontSize:'8px', letterSpacing:'0.3em', textTransform:'uppercase', fontFamily:"'Poppins',sans-serif", fontWeight:500, textDecoration:'none', display:'inline-block' }}
+                >
+                  Create Account →
+                </Link>
+                <Link to="/" style={{ border:'1px solid rgba(155,110,9,0.22)', color:'var(--gold)', opacity:0.55, padding:'13px 20px', fontSize:'8px', letterSpacing:'0.3em', textTransform:'uppercase', fontFamily:"'Poppins',sans-serif", textDecoration:'none', display:'inline-block' }}>
+                  Skip for now
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       )}

@@ -14,6 +14,8 @@ import Register from './pages/Register'
 import RegisterSGS from './pages/RegisterSGS'
 import RegisterExternal from './pages/RegisterExternal'
 import Portfolio from './pages/Portfolio'
+import Dashboard from './pages/Dashboard'
+import CreateAccount from './pages/CreateAccount'
 
 function MainPage() {
   return (
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="/register/sgs" element={<RegisterSGS />} />
           <Route path="/register/external" element={<RegisterExternal />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/create-account" element={<CreateAccount />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
