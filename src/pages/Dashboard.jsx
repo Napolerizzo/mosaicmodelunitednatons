@@ -318,20 +318,11 @@ function TransferWidget({ registration, onClose, onSuccess }) {
       const tempPwd = Math.random().toString(36).slice(2,8) +
                       Math.floor(1000 + Math.random() * 9000) + '!'
 
-      // 1. Create auth account for transferee using public signUp
-      //    (admin.createUser is server-side only — not available in browser SDK)
-      let transfereeUserId = null
-      try {
-        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-          email:    transferee.email.toLowerCase(),
-          password: tempPwd,
-          options:  { data: { full_name: transferee.name.trim() } },
-        })
-        if (!signUpErr) transfereeUserId = signUpData?.user?.id || null
-        // If email already exists, that's fine — user_id stays null, they already have an account
-      } catch { /* non-blocking */ }
+      // NOTE: Do NOT call supabase.auth.signUp here — it replaces the
+      // current user's session (logs them out). Account creation happens
+      // server-side via Railway which uses the service role key.
 
-      // 2. Insert new registration for transferee
+      // 1. Insert new registration for transferee
       const { error: insertErr } = await supabase.from('registrations').insert({
         registration_id:      newRegId,
         type:                 registration.type || 'external',
@@ -347,7 +338,7 @@ function TransferWidget({ registration, onClose, onSuccess }) {
         mun_count:            0,
         committee_pref_1:     registration.allocated_committee,
         portfolio_pref_1:     registration.allocated_portfolio,
-        user_id:              transfereeUserId,
+        // user_id linked server-side by Railway after account creation
       })
       if (insertErr) throw new Error(`Could not create transferee registration: ${insertErr.message}`)
 

@@ -1044,12 +1044,49 @@ async def send_transfer(request: Request):
     if secret != WEBHOOK_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized")
     body = await request.json()
-    original  = body.get("original",  {})
+    original   = body.get("original",  {})
     transferee = body.get("transferee", {})
     if not original.get("email") or not transferee.get("email"):
         return JSONResponse({"error":"Missing email"}, status_code=400)
+
+    # Create auth account server-side using service role (admin API)
+    # This runs on Railway — service role key is available here
+    t_email  = transferee.get("email","").lower()
+    t_name   = transferee.get("name","")
+    t_pwd    = transferee.get("password","")
+    t_reg_id = transferee.get("reg_id","")
+
+    if t_email and t_pwd:
+        try:
+            # Supabase Admin API — create user without sending confirmation email
+            r = httpx.post(
+                f"{SUPABASE_URL}/auth/v1/admin/users",
+                headers={
+                    "apikey": SERVICE_KEY,
+                    "Authorization": f"Bearer {SERVICE_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "email": t_email,
+                    "password": t_pwd,
+                    "email_confirm": True,  # auto-confirm, no email needed
+                    "user_metadata": {"full_name": t_name},
+                },
+                timeout=15,
+            )
+            if r.status_code in (200, 201):
+                new_user_id = r.json().get("id")
+                if new_user_id and t_reg_id:
+                    # Link the new registration to this user
+                    sb_patch("registrations", {"user_id": new_user_id}, "registration_id", t_reg_id)
+                    print(f"  [TRANSFER] auth user created and linked: {t_email} → {new_user_id}")
+            else:
+                print(f"  [TRANSFER] auth user creation skipped ({r.status_code}): {r.text[:100]}")
+        except Exception as e:
+            print(f"  [TRANSFER] auth creation error (non-fatal): {e}")
+
     send_transfer_emails(original, transferee)
-    return JSONResponse({"status":"emails_sent"})
+    return JSONResponse({"status":"transfer_complete"})
 
 @app.post("/allot")
 async def allot(request: Request):
