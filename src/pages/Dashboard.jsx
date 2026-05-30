@@ -314,45 +314,15 @@ function TransferWidget({ registration, onClose, onSuccess }) {
     setSubmitting(true); setError('')
     try {
       const newRegId = `TRF-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
-      // Generate temp password: word + numbers + symbol
-      const tempPwd = Math.random().toString(36).slice(2,8) +
-                      Math.floor(1000 + Math.random() * 9000) + '!'
+      const tempPwd  = Math.random().toString(36).slice(2,8) + Math.floor(1000 + Math.random()*9000) + '!'
 
-      // NOTE: Do NOT call supabase.auth.signUp here — it replaces the
-      // current user's session (logs them out). Account creation happens
-      // server-side via Railway which uses the service role key.
-
-      // 1. Insert new registration for transferee
-      const { error: insertErr } = await supabase.from('registrations').insert({
-        registration_id:      newRegId,
-        type:                 registration.type || 'external',
-        full_name:            transferee.name.trim(),
-        email:                transferee.email.toLowerCase(),
-        institution:          transferee.institution.trim() || 'Transferred',
-        allocated_committee:  registration.allocated_committee,
-        allocated_portfolio:  registration.allocated_portfolio,
-        allocation_status:    'allotted',
-        allotment_score:      registration.allotment_score || 0.8,
-        allotment_confidence: registration.allotment_confidence || 0.9,
-        is_allotment_stable:  true,
-        mun_count:            0,
-        committee_pref_1:     registration.allocated_committee,
-        portfolio_pref_1:     registration.allocated_portfolio,
-        // user_id linked server-side by Railway after account creation
-      })
-      if (insertErr) throw new Error(`Could not create transferee registration: ${insertErr.message}`)
-
-      // 3. Remove allotment from original delegate (match by registration_id — safer than id)
-      const { error: updateErr } = await supabase.from('registrations').update({
-        allocation_status:   'transferred',
-        allocated_committee: null,
-        allocated_portfolio: null,
-        updated_at:          new Date().toISOString(),
-      }).eq('registration_id', registration.registration_id)
-      if (updateErr) throw new Error(`Could not update original registration: ${updateErr.message}`)
-
-      // 4. Send emails via Railway (non-blocking — don't fail transfer if email fails)
-      fetch('https://mosaic-allot-engine-production.up.railway.app/send-transfer', {
+      // Single server-side call — Railway handles:
+      //   1. Insert transferee registration (already allotted, skipped by engine)
+      //   2. Mark original as transferred (skipped by engine on next run)
+      //   3. Create auth account for transferee (admin API, no browser session change)
+      //   4. Send both emails
+      // Nothing happens in the browser that could trigger the allotment engine
+      const resp = await fetch('https://mosaic-allot-engine-production.up.railway.app/send-transfer', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Secret': 'mosaic-mun-allot-2026' },
         body: JSON.stringify({
@@ -360,19 +330,23 @@ function TransferWidget({ registration, onClose, onSuccess }) {
             name:      registration.full_name,
             email:     registration.email,
             reg_id:    registration.registration_id,
+            db_id:     registration.id,
             committee: registration.allocated_committee,
             portfolio: registration.allocated_portfolio,
+            type:      registration.type || 'external',
+            allotment_score:      registration.allotment_score || 0.8,
+            allotment_confidence: registration.allotment_confidence || 0.9,
           },
           transferee: {
-            name:      transferee.name.trim(),
-            email:     transferee.email.toLowerCase(),
-            reg_id:    newRegId,
-            password:  tempPwd,
-            committee: registration.allocated_committee,
-            portfolio: registration.allocated_portfolio,
+            name:        transferee.name.trim(),
+            email:       transferee.email.toLowerCase(),
+            institution: transferee.institution.trim() || 'Transferred',
+            reg_id:      newRegId,
+            password:    tempPwd,
           },
         }),
-      }).catch(e => console.warn('Transfer email failed (non-blocking):', e))
+      })
+      if (!resp.ok) throw new Error(`Transfer failed (${resp.status})`)
 
       setStep('done')
       onSuccess?.()

@@ -759,7 +759,7 @@ def run_allotment():
     delegates, seen_emails, flagged = [], {}, []
 
     for order, r in enumerate(raw_delegates):
-        if r.get("allocation_status") in ("allotted","contested"):
+        if r.get("allocation_status") in ("allotted","contested","transferred"):
             continue
         email = (r.get("email") or "").lower().strip()
         is_dup = False
@@ -1049,43 +1049,98 @@ async def send_transfer(request: Request):
     if not original.get("email") or not transferee.get("email"):
         return JSONResponse({"error":"Missing email"}, status_code=400)
 
-    # Create auth account server-side using service role (admin API)
-    # This runs on Railway — service role key is available here
-    t_email  = transferee.get("email","").lower()
-    t_name   = transferee.get("name","")
-    t_pwd    = transferee.get("password","")
-    t_reg_id = transferee.get("reg_id","")
+    t_email     = transferee.get("email","").lower()
+    t_name      = transferee.get("name","")
+    t_pwd       = transferee.get("password","")
+    t_reg_id    = transferee.get("reg_id","")
+    t_inst      = transferee.get("institution","Transferred")
+    orig_db_id  = original.get("db_id","")
+    orig_reg_id = original.get("reg_id","")
+    committee   = original.get("committee","")
+    portfolio   = original.get("portfolio","")
 
-    if t_email and t_pwd:
-        try:
-            # Supabase Admin API — create user without sending confirmation email
-            r = httpx.post(
-                f"{SUPABASE_URL}/auth/v1/admin/users",
-                headers={
-                    "apikey": SERVICE_KEY,
-                    "Authorization": f"Bearer {SERVICE_KEY}",
-                    "Content-Type": "application/json",
-                },
+    # ── Step 1: Insert transferee registration (already allotted — engine skips it)
+    transferee_user_id = None
+    try:
+        insert_r = httpx.post(
+            f"{SUPABASE_URL}/rest/v1/registrations",
+            headers={**SB_HDR, "Prefer": "return=representation"},
+            json={
+                "registration_id":      t_reg_id,
+                "type":                 original.get("type","external"),
+                "full_name":            t_name,
+                "email":                t_email,
+                "institution":          t_inst,
+                "allocated_committee":  committee,
+                "allocated_portfolio":  portfolio,
+                "allocation_status":    "allotted",  # already allotted — engine will skip
+                "allotment_score":      original.get("allotment_score", 0.8),
+                "allotment_confidence": original.get("allotment_confidence", 0.9),
+                "is_allotment_stable":  True,
+                "mun_count":            0,
+                "committee_pref_1":     committee,
+                "portfolio_pref_1":     portfolio,
+            },
+            timeout=15,
+        )
+        if insert_r.status_code not in (200, 201):
+            print(f"  [TRANSFER] insert failed {insert_r.status_code}: {insert_r.text[:200]}")
+            return JSONResponse({"error": f"Could not create registration: {insert_r.text[:100]}"}, status_code=500)
+        print(f"  [TRANSFER] transferee registration inserted: {t_reg_id}")
+    except Exception as e:
+        return JSONResponse({"error": f"DB insert failed: {e}"}, status_code=500)
+
+    # ── Step 2: Mark original as transferred
+    try:
+        if orig_reg_id:
+            httpx.patch(
+                f"{SUPABASE_URL}/rest/v1/registrations",
+                headers={**SB_HDR, "Prefer": "return=minimal"},
+                params={"registration_id": f"eq.{orig_reg_id}"},
                 json={
-                    "email": t_email,
-                    "password": t_pwd,
-                    "email_confirm": True,  # auto-confirm, no email needed
-                    "user_metadata": {"full_name": t_name},
+                    "allocation_status":   "transferred",
+                    "allocated_committee": None,
+                    "allocated_portfolio": None,
+                    "updated_at":          "now()",
                 },
                 timeout=15,
             )
-            if r.status_code in (200, 201):
-                new_user_id = r.json().get("id")
+            print(f"  [TRANSFER] original marked transferred: {orig_reg_id}")
+    except Exception as e:
+        print(f"  [TRANSFER] update original failed (non-fatal): {e}")
+
+    # ── Step 3: Create auth account for transferee (admin API, no browser session)
+    if t_email and t_pwd:
+        try:
+            auth_r = httpx.post(
+                f"{SUPABASE_URL}/auth/v1/admin/users",
+                headers={"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json"},
+                json={"email": t_email, "password": t_pwd, "email_confirm": True, "user_metadata": {"full_name": t_name}},
+                timeout=15,
+            )
+            if auth_r.status_code in (200, 201):
+                new_user_id = auth_r.json().get("id")
                 if new_user_id and t_reg_id:
-                    # Link the new registration to this user
-                    sb_patch("registrations", {"user_id": new_user_id}, "registration_id", t_reg_id)
-                    print(f"  [TRANSFER] auth user created and linked: {t_email} → {new_user_id}")
+                    httpx.patch(
+                        f"{SUPABASE_URL}/rest/v1/registrations",
+                        headers={**SB_HDR, "Prefer": "return=minimal"},
+                        params={"registration_id": f"eq.{t_reg_id}"},
+                        json={"user_id": new_user_id},
+                        timeout=10,
+                    )
+                    transferee_user_id = new_user_id
+                    print(f"  [TRANSFER] auth account created and linked: {t_email}")
             else:
-                print(f"  [TRANSFER] auth user creation skipped ({r.status_code}): {r.text[:100]}")
+                print(f"  [TRANSFER] auth account skipped ({auth_r.status_code}): {auth_r.text[:100]}")
         except Exception as e:
             print(f"  [TRANSFER] auth creation error (non-fatal): {e}")
 
+    # ── Step 4: Send both emails
+    # Pass full transferee context including committee/portfolio
+    transferee["committee"] = committee
+    transferee["portfolio"]  = portfolio
     send_transfer_emails(original, transferee)
+
     return JSONResponse({"status":"transfer_complete"})
 
 @app.post("/allot")
