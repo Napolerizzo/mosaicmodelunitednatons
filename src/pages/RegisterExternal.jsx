@@ -482,8 +482,9 @@ export default function RegisterExternal() {
         setStep(3)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       })
-    } catch {
-      setErrors({ submit: 'Submission failed. Please try again.' })
+    } catch (err) {
+      console.error('Registration error:', err)
+      setErrors({ submit: `Submission failed: ${err?.message || String(err)}` })
     } finally {
       setSubmitting(false)
     }
