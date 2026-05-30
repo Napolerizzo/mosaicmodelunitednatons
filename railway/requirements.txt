@@ -5,5 +5,4 @@ scipy==1.14.1
 numpy==2.1.1
 rapidfuzz==3.9.7
 jellyfish==1.1.0
-google-auth==2.34.0
-requests==2.32.3
+cryptography==43.0.1
