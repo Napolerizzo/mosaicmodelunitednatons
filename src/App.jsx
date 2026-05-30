@@ -17,6 +17,7 @@ import Portfolio from './pages/Portfolio'
 import Dashboard from './pages/Dashboard'
 import CreateAccount from './pages/CreateAccount'
 import Signup from './pages/Signup'
+import Admin  from './pages/Admin'
 
 function MainPage() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/admin"  element={<Admin />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

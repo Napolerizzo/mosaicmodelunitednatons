@@ -2,8 +2,10 @@
 // GLM-4-Flash (primary) → Gemini 2.0 Flash Lite (fallback) → local intelligence (final fallback)
 // GLM key never touches the frontend.
 
-const GLM_KEY    = process.env.GLM_API_KEY    || '3d6a8caae0b94b9b89798a1b03250b43.Z2sillVcjvoTo3KT'
-const GEMINI_KEY = process.env.GEMINI_API_KEY || ''
+const GLM_KEY      = process.env.GLM_API_KEY    || '3d6a8caae0b94b9b89798a1b03250b43.Z2sillVcjvoTo3KT'
+const GEMINI_KEY   = process.env.GEMINI_API_KEY || ''
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://iybxhvqixuxcfguhfqxf.supabase.co'
+const SUPABASE_ANON = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5YnhodnFpeHV4Y2ZndWhmcXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjgzNTYsImV4cCI6MjA5NTYwNDM1Nn0.g2CVBnizkSRmlx4fdhrI2krjEiPQYHSGJ1ly2whcjc4'
 
 const COMMITTEE_AGENDAS = {
   UNGA:  { name: 'United Nations General Assembly',        agenda: 'Discussing the Voting Rights of States Under Foreign Military Occupation' },
@@ -85,6 +87,30 @@ function localIntelligence(message, delegate) {
   return `I am Mozart — the intelligence of Mosaic MUN II. I can brief you on your committee, agenda, allotment status, and conference logistics. What would you like to know?\n\n— Mozart`
 }
 
+async function logConversation({ delegate, message, reply, model }) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/mozart_logs`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        registration_id: delegate.registration_id || null,
+        delegate_name:   delegate.name || null,
+        message,
+        reply,
+        model_used: model,
+      }),
+    })
+  } catch (e) {
+    // Non-blocking — logging failure shouldn't break the chat
+    console.warn('mozart_logs insert failed:', e.message)
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -113,7 +139,10 @@ export default async function handler(req, res) {
     if (r.ok) {
       const data = await r.json()
       const text = data.choices?.[0]?.message?.content?.trim()
-      if (text) return res.json({ reply: text, model: 'glm-4-flash' })
+      if (text) {
+        await logConversation({ delegate, message, reply: text, model: 'glm-4-flash' })
+        return res.json({ reply: text, model: 'glm-4-flash' })
+      }
     }
   } catch (e) {
     console.warn('GLM failed:', e.message)
@@ -137,7 +166,10 @@ export default async function handler(req, res) {
       if (r.ok) {
         const data = await r.json()
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
-        if (text) return res.json({ reply: text, model: 'gemini-flash-lite' })
+        if (text) {
+          await logConversation({ delegate, message, reply: text, model: 'gemini-flash-lite' })
+          return res.json({ reply: text, model: 'gemini-flash-lite' })
+        }
       }
     } catch (e) {
       console.warn('Gemini failed:', e.message)
@@ -145,5 +177,7 @@ export default async function handler(req, res) {
   }
 
   // Final fallback: local intelligence (no API)
-  return res.json({ reply: localIntelligence(message, delegate), model: 'local' })
+  const fallback = localIntelligence(message, delegate)
+  await logConversation({ delegate, message, reply: fallback, model: 'local' })
+  return res.json({ reply: fallback, model: 'local' })
 }
