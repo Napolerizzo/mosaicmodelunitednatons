@@ -187,148 +187,337 @@ function OverviewTab({ registration }) {
 }
 
 // ── MOZART TAB ────────────────────────────────────────────────────────────────
+const MOZART_SUGGESTIONS = [
+  'Brief me on my committee agenda',
+  'What should I research for my portfolio?',
+  'Who else is in my committee?',
+  'Tell me about the conference',
+]
+
 function MozartTab({ registration }) {
   const [messages, setMessages] = useState([{
-    role:'mozart',
-    text:`I am Mozart — the intelligence of Mosaic MUN II.\n\nI know your delegation, your committee's agenda, and everything about this conference. Ask me anything.\n\n— Mozart`,
-    ts:Date.now()
+    role: 'mozart',
+    text: `I am Mozart — the intelligence of Mosaic MUN II.\n\nI know your delegation, your committee's agenda, and everything about this conference. Ask me anything.\n\n— Mozart`,
+    ts: Date.now(),
   }])
-  const [input, setInput]           = useState('')
-  const [loading, setLoading]       = useState(false)
-  const [displayedLast, setDisplayedLast] = useState('')
-  const bottomRef = useRef(null)
+  const [input,        setInput]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [displayedLast,setDisplayedLast]= useState('')
+  const [showSuggest,  setShowSuggest]  = useState(true)
+  const bottomRef  = useRef(null)
+  const inputRef   = useRef(null)
+  const messagesRef = useRef(null)
 
   const delegate = {
-    name:registration?.full_name,
-    registration_id:registration?.registration_id,
-    committee:registration?.allocated_committee,
-    portfolio:registration?.allocated_portfolio,
-    status:registration?.allocation_status,
+    name:            registration?.full_name,
+    registration_id: registration?.registration_id,
+    committee:       registration?.allocated_committee,
+    portfolio:       registration?.allocated_portfolio,
+    status:          registration?.allocation_status,
   }
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages,displayedLast])
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, displayedLast])
 
   const typewrite = useCallback((text, cb) => {
     let i = 0; setDisplayedLast('')
     const tick = () => {
-      i++; setDisplayedLast(text.slice(0,i))
-      if (i < text.length) setTimeout(tick, 16)
+      i++; setDisplayedLast(text.slice(0, i))
+      if (i < text.length) setTimeout(tick, 14)
       else { setDisplayedLast(''); cb(text) }
     }
-    setTimeout(tick, 16)
+    setTimeout(tick, 14)
   }, [])
 
-  const send = async () => {
-    const msg = input.trim()
+  const send = async (msgOverride) => {
+    const msg = (msgOverride || input).trim()
     if (!msg || loading) return
     setInput('')
-    setMessages(m => [...m, { role:'user', text:msg, ts:Date.now() }])
+    setShowSuggest(false)
+    setMessages(m => [...m, { role: 'user', text: msg, ts: Date.now() }])
     setLoading(true)
     try {
       const r = await fetch('/api/mozart', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ message:msg, delegate }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, delegate }),
       })
       const data = await r.json()
       const reply = data.reply || 'I encountered an issue. Please try again.\n\n— Mozart'
       setLoading(false)
-      typewrite(reply, full => setMessages(m => [...m, { role:'mozart', text:full, ts:Date.now() }]))
+      typewrite(reply, full => setMessages(m => [...m, { role: 'mozart', text: full, ts: Date.now() }]))
     } catch {
       setLoading(false)
-      setMessages(m => [...m, { role:'mozart', text:'I encountered an issue. Please try again.\n\n— Mozart', ts:Date.now() }])
+      setMessages(m => [...m, { role: 'mozart', text: 'I encountered an issue. Please try again.\n\n— Mozart', ts: Date.now() }])
     }
   }
 
   return (
-    <div style={{ position:'relative',minHeight:'calc(100vh - 108px)',display:'flex',flexDirection:'column' }}>
+    <div style={{
+      position: 'relative',
+      height: 'calc(100vh - 108px)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      {/* Shard background — full height, stays fixed */}
       <ShardLayer shards={SHARD_SETS.mozart} />
 
-      {/* Header */}
-      <div style={{ position:'relative',zIndex:2,padding:'36px 8vw 20px',borderBottom:'1px solid rgba(155,110,9,0.1)' }}>
-        <div style={{ fontSize:'7px',letterSpacing:'0.5em',textTransform:'uppercase',color:'rgba(155,110,9,0.38)',marginBottom:6 }}>DELEGATE INTELLIGENCE SYSTEM</div>
-        <div style={{ fontFamily:"'Montserrat',sans-serif",fontWeight:900,fontSize:'clamp(1.8rem,3.5vw,2.8rem)',letterSpacing:'-0.04em',color:'#f0ece2',lineHeight:1 }}>Mozart</div>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:13,color:'rgba(200,180,140,0.45)',marginTop:6 }}>
-          Mosaic MUN AI · Conference Intelligence · Always in session
+      {/* Top identity bar */}
+      <div style={{
+        position: 'relative', zIndex: 2, flexShrink: 0,
+        padding: '20px clamp(16px,5vw,48px) 16px',
+        borderBottom: '1px solid rgba(200,168,78,0.1)',
+        background: 'rgba(22,18,14,0.82)',
+        backdropFilter: 'blur(16px)',
+        display: 'flex', alignItems: 'center', gap: 16,
+      }}>
+        {/* Mozart monogram */}
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+          background: 'linear-gradient(135deg,rgba(200,168,78,0.2) 0%,rgba(200,168,78,0.05) 100%)',
+          border: '1px solid rgba(200,168,78,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Montserrat',sans-serif", fontWeight: 900,
+          fontSize: 16, color: '#c8a84e', letterSpacing: '-0.04em',
+        }}>M</div>
+        <div>
+          <div style={{ fontFamily:"'Montserrat',sans-serif", fontWeight: 900, fontSize: 'clamp(1.1rem,2.5vw,1.5rem)', letterSpacing: '-0.03em', color: '#f0ece2', lineHeight: 1 }}>Mozart</div>
+          <div style={{ fontSize: 10, color: 'rgba(200,168,78,0.45)', letterSpacing: '0.28em', textTransform: 'uppercase', marginTop: 3 }}>
+            Mosaic MUN Intelligence
+          </div>
+        </div>
+        {/* Live indicator */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <motion.div animate={{ opacity:[0.4,1,0.4] }} transition={{ duration:2,repeat:Infinity }}
+            style={{ width:6, height:6, borderRadius:'50%', background:'#50c878', flexShrink:0 }} />
+          <span style={{ fontSize: 9, color: 'rgba(80,200,120,0.7)', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Live</span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{ position:'relative',zIndex:2,flex:1,overflowY:'auto',padding:'32px 8vw',display:'flex',flexDirection:'column',gap:24 }}>
-        <AnimatePresence>
-          {messages.map((m,i) => (
-            <motion.div key={i} initial={{ opacity:0,y:14 }} animate={{ opacity:1,y:0 }} transition={{ duration:0.45,ease:[0.22,1,0.36,1] }}
-              style={{ display:'flex',flexDirection:'column',alignItems:m.role==='user'?'flex-end':'flex-start',
-                maxWidth:'70%',alignSelf:m.role==='user'?'flex-end':'flex-start' }}>
-              {m.role==='mozart' && (
-                <div style={{ fontSize:'7px',letterSpacing:'0.44em',textTransform:'uppercase',color:'rgba(155,110,9,0.45)',marginBottom:8,paddingLeft:2 }}>
-                  MOZART · MOSAIC MUN AI
-                </div>
-              )}
-              <div style={{
-                padding:'16px 22px',
-                background:m.role==='user'?'rgba(155,110,9,0.14)':'rgba(12,10,6,0.92)',
-                border:m.role==='user'?'1px solid rgba(155,110,9,0.4)':'1px solid rgba(155,110,9,0.16)',
-                borderLeft:m.role==='mozart'?'2px solid rgba(155,110,9,0.6)':undefined,
-                fontSize:14.5,lineHeight:1.85,
-                color:m.role==='user'?'#f0ece2':'#d4c8a8',
-                fontFamily:"'Cormorant Garamond',serif",
-                fontStyle:m.role==='mozart'?'italic':'normal',
-                whiteSpace:'pre-wrap',maxWidth:540,
+      {/* Message feed */}
+      <div ref={messagesRef} style={{
+        position: 'relative', zIndex: 2, flex: 1, overflowY: 'auto',
+        padding: 'clamp(16px,4vw,32px) clamp(12px,5vw,48px)',
+        display: 'flex', flexDirection: 'column', gap: 'clamp(14px,3vw,24px)',
+        scrollBehavior: 'smooth',
+        /* Custom scrollbar */
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(200,168,78,0.2) transparent',
+      }}>
+        {/* Suggestion chips — only shown before first user message */}
+        {showSuggest && (
+          <motion.div initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} transition={{ duration:0.5,delay:0.3 }}
+            style={{ display:'flex', flexWrap:'wrap', gap:8, paddingBottom:8 }}>
+            {MOZART_SUGGESTIONS.map(s => (
+              <button key={s} onClick={() => send(s)}
+                style={{
+                  background: 'rgba(200,168,78,0.07)', border: '1px solid rgba(200,168,78,0.22)',
+                  color: 'rgba(200,168,78,0.75)', padding: '8px 14px',
+                  fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+                  fontSize: 'clamp(12px,1.5vw,13px)', cursor: 'pointer',
+                  lineHeight: 1.4, textAlign: 'left',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e=>{ e.target.style.background='rgba(200,168,78,0.12)'; e.target.style.color='#c8a84e' }}
+                onMouseLeave={e=>{ e.target.style.background='rgba(200,168,78,0.07)'; e.target.style.color='rgba(200,168,78,0.75)' }}
+              >{s}</button>
+            ))}
+          </motion.div>
+        )}
+
+        <AnimatePresence initial={false}>
+          {messages.map((m, i) => (
+            <motion.div key={i}
+              initial={{ opacity:0, y:12, scale:0.98 }}
+              animate={{ opacity:1, y:0, scale:1 }}
+              transition={{ duration:0.38, ease:[0.22,1,0.36,1] }}
+              style={{
+                display: 'flex',
+                flexDirection: m.role==='user' ? 'row-reverse' : 'row',
+                alignItems: 'flex-end',
+                gap: 10,
+                alignSelf: m.role==='user' ? 'flex-end' : 'flex-start',
+                maxWidth: 'min(86%, 600px)',
               }}>
-                {m.text}
+
+              {/* Avatar */}
+              {m.role === 'mozart' && (
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginBottom: 2,
+                  background: 'linear-gradient(135deg,rgba(200,168,78,0.18) 0%,rgba(200,168,78,0.04) 100%)',
+                  border: '1px solid rgba(200,168,78,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Montserrat',sans-serif", fontWeight: 900, fontSize: 11, color: '#c8a84e',
+                }}>M</div>
+              )}
+
+              <div style={{ display:'flex', flexDirection:'column', gap:4,
+                alignItems: m.role==='user' ? 'flex-end' : 'flex-start' }}>
+
+                {m.role === 'mozart' && i > 0 && (
+                  <div style={{ fontSize:'6.5px', letterSpacing:'0.36em', textTransform:'uppercase', color:'rgba(200,168,78,0.4)', paddingLeft:2 }}>
+                    MOZART
+                  </div>
+                )}
+
+                {/* Bubble */}
+                <div style={{
+                  padding: 'clamp(12px,2vw,16px) clamp(14px,2.5vw,20px)',
+                  background: m.role==='user'
+                    ? 'linear-gradient(135deg,rgba(200,168,78,0.18) 0%,rgba(200,168,78,0.08) 100%)'
+                    : 'rgba(14,11,8,0.88)',
+                  border: m.role==='user'
+                    ? '1px solid rgba(200,168,78,0.4)'
+                    : '1px solid rgba(200,168,78,0.13)',
+                  borderLeft: m.role==='mozart' ? '2px solid rgba(200,168,78,0.55)' : undefined,
+                  borderRadius: m.role==='user' ? '16px 16px 2px 16px' : '2px 16px 16px 16px',
+                  fontSize: 'clamp(13px,1.6vw,15px)',
+                  lineHeight: 1.82,
+                  color: m.role==='user' ? '#f0ece2' : '#ddd4b8',
+                  fontFamily: "'Cormorant Garamond',serif",
+                  fontStyle: m.role==='mozart' ? 'italic' : 'normal',
+                  whiteSpace: 'pre-wrap',
+                  backdropFilter: m.role==='mozart' ? 'blur(8px)' : undefined,
+                  boxShadow: m.role==='mozart' ? '0 4px 24px rgba(0,0,0,0.25)' : '0 2px 12px rgba(200,168,78,0.08)',
+                }}>
+                  {m.text}
+                </div>
+
+                {/* Timestamp */}
+                <div style={{ fontSize:9, color:'rgba(200,168,78,0.22)', letterSpacing:'0.1em',
+                  paddingLeft: m.role==='mozart' ? 2 : 0, paddingRight: m.role==='user' ? 2 : 0 }}>
+                  {new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
+                </div>
               </div>
             </motion.div>
           ))}
 
+          {/* Typewriter bubble */}
           {displayedLast && (
-            <motion.div key="typing" initial={{ opacity:0,y:14 }} animate={{ opacity:1,y:0 }}
-              style={{ display:'flex',flexDirection:'column',alignItems:'flex-start',maxWidth:'70%' }}>
-              <div style={{ fontSize:'7px',letterSpacing:'0.44em',textTransform:'uppercase',color:'rgba(155,110,9,0.45)',marginBottom:8,paddingLeft:2 }}>
-                MOZART · MOSAIC MUN AI
-              </div>
-              <div style={{ padding:'16px 22px',background:'rgba(12,10,6,0.92)',border:'1px solid rgba(155,110,9,0.16)',
-                borderLeft:'2px solid rgba(155,110,9,0.6)',fontSize:14.5,lineHeight:1.85,color:'#d4c8a8',
-                fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',whiteSpace:'pre-wrap',maxWidth:540 }}>
+            <motion.div key="typewriting"
+              initial={{ opacity:0, y:12, scale:0.98 }} animate={{ opacity:1, y:0, scale:1 }}
+              style={{ display:'flex', flexDirection:'row', alignItems:'flex-end', gap:10,
+                alignSelf:'flex-start', maxWidth:'min(86%, 600px)' }}>
+              <div style={{
+                width:28, height:28, borderRadius:'50%', flexShrink:0, marginBottom:2,
+                background:'linear-gradient(135deg,rgba(200,168,78,0.18) 0%,rgba(200,168,78,0.04) 100%)',
+                border:'1px solid rgba(200,168,78,0.3)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:"'Montserrat',sans-serif", fontWeight:900, fontSize:11, color:'#c8a84e',
+              }}>M</div>
+              <div style={{
+                padding: 'clamp(12px,2vw,16px) clamp(14px,2.5vw,20px)',
+                background:'rgba(14,11,8,0.88)', border:'1px solid rgba(200,168,78,0.13)',
+                borderLeft:'2px solid rgba(200,168,78,0.55)',
+                borderRadius:'2px 16px 16px 16px',
+                fontSize:'clamp(13px,1.6vw,15px)', lineHeight:1.82, color:'#ddd4b8',
+                fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+                whiteSpace:'pre-wrap', backdropFilter:'blur(8px)',
+                boxShadow:'0 4px 24px rgba(0,0,0,0.25)',
+              }}>
                 {displayedLast}
-                <motion.span animate={{ opacity:[0,1,0] }} transition={{ duration:0.7,repeat:Infinity }}>▌</motion.span>
+                <motion.span animate={{ opacity:[0,1,0] }} transition={{ duration:0.65, repeat:Infinity }}>▌</motion.span>
               </div>
             </motion.div>
           )}
 
+          {/* Thinking indicator */}
           {loading && !displayedLast && (
-            <motion.div key="loading" initial={{ opacity:0 }} animate={{ opacity:1 }}
-              style={{ display:'flex',alignItems:'center',gap:6,paddingLeft:4,marginTop:4 }}>
-              {[0,1,2].map(i => (
-                <motion.div key={i} animate={{ opacity:[0.2,1,0.2],y:[0,-5,0] }}
-                  transition={{ duration:0.85,delay:i*0.18,repeat:Infinity }}
-                  style={{ width:6,height:6,borderRadius:'50%',background:'#9b6e09' }} />
-              ))}
+            <motion.div key="thinking" initial={{ opacity:0 }} animate={{ opacity:1 }}
+              style={{ display:'flex', flexDirection:'row', alignItems:'flex-end', gap:10, alignSelf:'flex-start' }}>
+              <div style={{
+                width:28, height:28, borderRadius:'50%',
+                background:'linear-gradient(135deg,rgba(200,168,78,0.18) 0%,rgba(200,168,78,0.04) 100%)',
+                border:'1px solid rgba(200,168,78,0.3)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:"'Montserrat',sans-serif", fontWeight:900, fontSize:11, color:'#c8a84e',
+              }}>M</div>
+              <div style={{
+                padding:'14px 20px',
+                background:'rgba(14,11,8,0.88)', border:'1px solid rgba(200,168,78,0.13)',
+                borderLeft:'2px solid rgba(200,168,78,0.55)', borderRadius:'2px 16px 16px 16px',
+                display:'flex', gap:6, alignItems:'center', backdropFilter:'blur(8px)',
+              }}>
+                {[0,1,2].map(i => (
+                  <motion.div key={i}
+                    animate={{ opacity:[0.2,1,0.2], y:[0,-4,0] }}
+                    transition={{ duration:0.9, delay:i*0.2, repeat:Infinity }}
+                    style={{ width:7, height:7, borderRadius:'50%', background:'#c8a84e' }} />
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div style={{ position:'relative',zIndex:2,padding:'20px 8vw 32px',borderTop:'1px solid rgba(155,110,9,0.1)',
-        background:'rgba(5,4,2,0.92)',backdropFilter:'blur(14px)' }}>
-        <div style={{ display:'flex',gap:12,alignItems:'flex-end',maxWidth:760 }}>
-          <textarea value={input} onChange={e=>setInput(e.target.value)} rows={2}
-            onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()} }}
-            placeholder="Ask Mozart anything about your delegation, committee, or the conference..."
-            style={{ flex:1,background:'transparent',border:'none',borderBottom:'1px solid rgba(155,110,9,0.22)',
-              padding:'10px 0',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:15,
-              color:'#f0ece2',resize:'none',outline:'none',lineHeight:1.6 }} />
-          <button onClick={send} disabled={!input.trim()||loading}
-            style={{ background:'#9b6e09',color:'#000',border:'none',padding:'12px 24px',
-              fontFamily:"'Poppins',sans-serif",fontSize:'8px',fontWeight:500,letterSpacing:'0.3em',
-              textTransform:'uppercase',cursor:'pointer',flexShrink:0,
-              opacity:(!input.trim()||loading)?0.35:1 }}>
-            Send
-          </button>
+      {/* Input bar — sticky at bottom, safe area aware */}
+      <div style={{
+        position: 'relative', zIndex: 2, flexShrink: 0,
+        borderTop: '1px solid rgba(200,168,78,0.1)',
+        background: 'rgba(18,14,10,0.95)',
+        backdropFilter: 'blur(20px)',
+        padding: 'clamp(12px,2vw,18px) clamp(12px,5vw,48px)',
+        paddingBottom: 'max(clamp(12px,2vw,18px), env(safe-area-inset-bottom, 0px))',
+      }}>
+        <div style={{ display:'flex', gap:10, alignItems:'flex-end', maxWidth:760 }}>
+          <div style={{ flex:1, position:'relative' }}>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              placeholder="Ask Mozart anything…"
+              rows={1}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(200,168,78,0.2)',
+                borderRadius: 12,
+                padding: 'clamp(10px,1.5vw,13px) clamp(12px,2vw,16px)',
+                paddingRight: 48,
+                fontFamily: "'Cormorant Garamond',serif",
+                fontStyle: 'italic',
+                fontSize: 'clamp(14px,1.6vw,16px)',
+                color: '#f0ece2',
+                resize: 'none',
+                outline: 'none',
+                lineHeight: 1.55,
+                maxHeight: 120,
+                overflowY: 'auto',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={e => e.target.style.borderColor='rgba(200,168,78,0.5)'}
+              onBlur={e => e.target.style.borderColor='rgba(200,168,78,0.2)'}
+            />
+          </div>
+
+          {/* Send button */}
+          <motion.button
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
+            whileTap={{ scale: 0.93 }}
+            style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: input.trim() && !loading
+                ? 'linear-gradient(135deg,#c8a84e 0%,#9b6e09 100%)'
+                : 'rgba(200,168,78,0.1)',
+              border: '1px solid rgba(200,168,78,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: input.trim() && !loading ? 'pointer' : 'default',
+              transition: 'all 0.2s',
+              fontSize: 18,
+              color: input.trim() && !loading ? '#000' : 'rgba(200,168,78,0.3)',
+            }}
+          >
+            ↑
+          </motion.button>
         </div>
-        <div style={{ fontSize:'9px',color:'rgba(155,110,9,0.22)',marginTop:8,letterSpacing:'0.1em' }}>
-          ↵ Enter to send · Shift+Enter for new line
+
+        <div style={{ fontSize:9, color:'rgba(200,168,78,0.2)', marginTop:7, letterSpacing:'0.1em' }}>
+          ↵ Enter to send &nbsp;·&nbsp; Shift+Enter for new line
         </div>
       </div>
     </div>
