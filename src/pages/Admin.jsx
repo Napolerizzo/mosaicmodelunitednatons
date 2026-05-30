@@ -755,19 +755,20 @@ const CSS = `
 `
 
 export default function Admin() {
-  const { user, logout } = useAuth()
+  const { user, logout, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [tab,   setTab]   = useState('COMMAND')
   const [stats, setStats] = useState({ total:0,allotted:0,waitlisted:0,sgs:0,external:0,day1:0,day2:0,queriesOpen:0,mozartTotal:0 })
   const [activity, setActivity] = useState([])
   const [authChecked, setAuthChecked] = useState(false)
 
-  // Hard gate — check every render, redirect immediately if not admin
+  // Hard gate — wait for session restore, then check email
   useEffect(() => {
+    if (authLoading) return  // wait for Supabase to restore session
     if (!user) { navigate('/'); return }
     if (user.email !== ADMIN_EMAIL) { navigate('/'); return }
     setAuthChecked(true)
-  }, [user, navigate])
+  }, [user, authLoading, navigate])
 
   const loadStats = useCallback(async () => {
     const [regs, entries, queries, mozart] = await Promise.all([

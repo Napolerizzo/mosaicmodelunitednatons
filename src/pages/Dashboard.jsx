@@ -55,7 +55,7 @@ function ShardLayer({ shards }) {
           </div>
         </motion.div>
       ))}
-      <div style={{ position:'absolute',inset:0,background:'linear-gradient(to right,rgba(5,4,2,0.98) 0%,rgba(5,4,2,0.92) 44%,rgba(5,4,2,0.55) 100%)',zIndex:1 }} />
+      <div style={{ position:'absolute',inset:0,background:'linear-gradient(to right,rgba(22,18,14,0.98) 0%,rgba(22,18,14,0.88) 44%,rgba(22,18,14,0.45) 100%)',zIndex:1 }} />
     </div>
   )
 }
@@ -561,11 +561,11 @@ function QueriesTab({ registration, userId }) {
 
 // ── Dashboard CSS ─────────────────────────────────────────────────────────────
 const CSS = `
-.db-topbar{position:sticky;top:0;z-index:100;background:rgba(5,4,2,0.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(155,110,9,0.1);padding:14px 8vw;display:flex;align-items:center;justify-content:space-between;}
-.db-tab-strip{position:sticky;top:57px;z-index:90;background:rgba(5,4,2,0.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(155,110,9,0.08);padding:0 8vw;display:flex;align-items:center;}
-.db-tab{padding:17px 22px;font-size:7.5px;letter-spacing:0.44em;text-transform:uppercase;color:rgba(155,110,9,0.3);border-bottom:1.5px solid transparent;cursor:pointer;transition:color 0.25s,border-color 0.25s;background:none;border-left:none;border-right:none;border-top:none;font-family:'Poppins',sans-serif;}
-.db-tab:hover{color:rgba(155,110,9,0.6);}
-.db-tab.active{color:#c8a84e;border-bottom-color:#9b6e09;}
+.db-topbar{position:sticky;top:0;z-index:100;background:rgba(22,18,14,0.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(200,168,78,0.12);padding:14px 8vw;display:flex;align-items:center;justify-content:space-between;}
+.db-tab-strip{position:sticky;top:57px;z-index:90;background:rgba(20,16,12,0.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(200,168,78,0.1);padding:0 8vw;display:flex;align-items:center;}
+.db-tab{padding:17px 22px;font-size:7.5px;letter-spacing:0.44em;text-transform:uppercase;color:rgba(200,168,78,0.4);border-bottom:1.5px solid transparent;cursor:pointer;transition:color 0.25s,border-color 0.25s;background:none;border-left:none;border-right:none;border-top:none;font-family:'Poppins',sans-serif;}
+.db-tab:hover{color:rgba(200,168,78,0.75);}
+.db-tab.active{color:#c8a84e;border-bottom-color:#c8a84e;}
 @media(max-width:700px){
   .db-tab-strip{padding:0 16px;}
   .db-tab{padding:14px 10px;font-size:6.5px;letter-spacing:0.28em;}
@@ -574,11 +574,12 @@ const CSS = `
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { user, logout } = useAuth()
+  // Use loading from AuthContext — prevents redirect before session is restored
+  const { user, logout, loading: authLoading } = useAuth()
   const navigate          = useNavigate()
   const [tab, setTab]     = useState('OVERVIEW')
   const [registration, setRegistration] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading]   = useState(false)
 
   useEffect(() => {
     const el = document.createElement('style'); el.id='db-css'; el.textContent=CSS
@@ -587,41 +588,49 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
+    // Don't do anything while Supabase is restoring the session
+    if (authLoading) return
+    // Session fully restored — if still no user, send to login
     if (!user) { navigate('/login'); return }
-    supabase.from('registrations').select('*').eq('user_id',user.id)
-      .order('created_at',{ ascending:false }).limit(1)
-      .then(({ data }) => { setRegistration(data?.[0]||null); setLoading(false) })
-  }, [user,navigate])
+    // Fetch registration for this user
+    setDataLoading(true)
+    supabase.from('registrations').select('*').eq('user_id', user.id)
+      .order('created_at', { ascending: false }).limit(1)
+      .then(({ data }) => { setRegistration(data?.[0] || null); setDataLoading(false) })
+  }, [user, authLoading, navigate])
 
   const handleLogout = async () => { await logout(); navigate('/') }
 
-  if (!user) return null
-  if (loading) return (
-    <div style={{ minHeight:'100vh',background:'#050402',display:'flex',alignItems:'center',justifyContent:'center' }}>
+  // Show loader while Supabase restores session OR while fetching data
+  if (authLoading || dataLoading) return (
+    <div style={{ minHeight:'100vh',background:'#1a1612',display:'flex',alignItems:'center',justifyContent:'center' }}>
       <motion.div animate={{ opacity:[0.3,1,0.3] }} transition={{ duration:1.8,repeat:Infinity }}
-        style={{ fontSize:'7.5px',letterSpacing:'0.44em',textTransform:'uppercase',color:'rgba(155,110,9,0.5)',fontFamily:"'Poppins',sans-serif" }}>
+        style={{ fontSize:'7.5px',letterSpacing:'0.44em',textTransform:'uppercase',color:'rgba(200,168,78,0.5)',fontFamily:"'Poppins',sans-serif" }}>
         Loading your credential...
       </motion.div>
     </div>
   )
 
+  // Session fully restored and no user → navigate already fired above, show nothing
+  if (!user) return null
+
   const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Delegate'
 
   return (
-    <div style={{ minHeight:'100vh',background:'#050402',fontFamily:"'Poppins',sans-serif" }}>
+    <div style={{ minHeight:'100vh',background:'#1a1612',fontFamily:"'Poppins',sans-serif" }}>
       {/* Topbar */}
       <div className="db-topbar">
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
-          <img src="/brand-assets/mosaic-logo-nobg.png" alt="Mosaic MUN" height={22} style={{ opacity:0.85 }} />
-          <span style={{ fontSize:'7px',letterSpacing:'0.42em',textTransform:'uppercase',color:'rgba(155,110,9,0.38)' }}>DELEGATE PORTAL</span>
+          <img src="/brand-assets/mosaic-logo-nobg.png" alt="Mosaic MUN" height={22} style={{ opacity:0.9 }} />
+          <span style={{ fontSize:'7px',letterSpacing:'0.42em',textTransform:'uppercase',color:'rgba(200,168,78,0.5)' }}>DELEGATE PORTAL</span>
         </div>
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
-          <span style={{ fontSize:'9px',color:'rgba(200,180,140,0.45)',letterSpacing:'0.1em' }}>{firstName}</span>
+          <span style={{ fontSize:'11px',color:'rgba(232,228,220,0.7)',letterSpacing:'0.05em' }}>{firstName}</span>
           <button onClick={handleLogout}
-            style={{ fontSize:'7.5px',letterSpacing:'0.3em',textTransform:'uppercase',color:'rgba(155,110,9,0.4)',
+            style={{ fontSize:'7.5px',letterSpacing:'0.3em',textTransform:'uppercase',color:'rgba(200,168,78,0.55)',
               background:'none',border:'none',cursor:'pointer',transition:'color 0.2s',fontFamily:"'Poppins',sans-serif" }}
-            onMouseEnter={e=>e.target.style.color='rgba(155,110,9,0.85)'}
-            onMouseLeave={e=>e.target.style.color='rgba(155,110,9,0.4)'}>
+            onMouseEnter={e=>e.target.style.color='rgba(200,168,78,0.95)'}
+            onMouseLeave={e=>e.target.style.color='rgba(200,168,78,0.55)'}>
             Sign out
           </button>
         </div>
@@ -646,8 +655,8 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Footer */}
-      <footer style={{ borderTop:'1px solid rgba(155,110,9,0.07)',padding:'20px 8vw',display:'flex',
-        alignItems:'center',justifyContent:'space-between',background:'rgba(5,4,2,0.6)',flexWrap:'wrap',gap:12 }}>
+      <footer style={{ borderTop:'1px solid rgba(200,168,78,0.1)',padding:'20px 8vw',display:'flex',
+        alignItems:'center',justifyContent:'space-between',background:'rgba(16,12,8,0.8)',flexWrap:'wrap',gap:12 }}>
         <div style={{ display:'flex',alignItems:'center',gap:14 }}>
           <img src="/brand-assets/mosaic-logo-nobg.png" height={18} style={{ opacity:0.4 }} alt="Mosaic MUN" />
           <span style={{ fontSize:'7.5px',letterSpacing:'0.2em',textTransform:'uppercase',color:'rgba(90,78,56,0.65)' }}>
