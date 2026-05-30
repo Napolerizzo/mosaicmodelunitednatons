@@ -186,15 +186,347 @@ function OverviewTab({ registration }) {
   )
 }
 
+// ── MOZART LOCAL INTELLIGENCE ─────────────────────────────────────────────────
+// Handles ~25 common intents locally. API only called when nothing matches.
+
+const COMMITTEE_FULL_AGENDAS = {
+  UNGA:  { full:'United Nations General Assembly', agenda:'Discussing the Voting Rights of States Under Foreign Military Occupation', brief:'Military occupation strips a state of territorial control. Debate focuses on whether occupied states retain full UNGA voting rights — engaging Palestinian observer status, Western Sahara, Crimea, and what statehood means when boots are on the ground.' },
+  UNCSW: { full:'UN Commission on the Status of Women', agenda:'Deliberation upon Surrogate Motherhood as International Labor', brief:'Commercial surrogacy sits at the collision point of reproductive rights, labor law, migration, and bodily autonomy. Women from lower-income countries often carry children for wealthier clients abroad, raising urgent questions about informed consent, fair compensation, and exploitation.' },
+  UNHRC: { full:'UN Human Rights Council', agenda:'The Right to Be Forgotten vs. The Right to Truth in Atrocity Documentation', brief:'Perpetrators of genocide and war crimes have begun invoking the right to be forgotten to scrub their names from atrocity documentation. The committee confronts cases from the Balkans, Rwanda, and Syria: when do privacy rights yield to historical accountability?' },
+  AIPPM: { full:'All India Political Parties Meet', agenda:'Operation Sindoor and the Question of Parliamentary War Powers', brief:'In May 2025, India launched Operation Sindoor — precision strikes on terrorist infrastructure in Pakistan-administered Kashmir. The committee debates whether the executive branch has authority to conduct offensive military operations abroad without explicit parliamentary sanction.' },
+  IPL:   { full:'Indian Premier League Committee', agenda:'Mega Auction', brief:'Delegates represent IPL franchises and bid for players within strict budget constraints, use RTM cards strategically, and build balanced squads. The committee involves real-time bidding, negotiation between franchises, and decisions under significant time pressure.' },
+  IP:    { full:'International Press Corps', agenda:'Photography, Caricature, and Journalism', brief:'Reporters are assigned one of three tracks. Photojournalists cover sessions and moments. Caricaturists produce editorial commentary on the day\'s debates. Journalists write communiques and file stories under tight deadlines.' },
+  USSIC: { full:'US Senate Intelligence Committee', agenda:'Discussing and Declassifying The Epstein Files', brief:'Jeffrey Epstein\'s documented connections to intelligence networks, foreign governments, and powerful political figures were never fully investigated. This crisis committee simulates a live Senate hearing as sealed documents are released in real time, witnesses appear under subpoena, and new information forces the committee to adapt.' },
+}
+
+function localIntelligence(msg, delegate) {
+  const q = msg.toLowerCase().trim()
+  const committee = delegate?.committee
+  const portfolio = delegate?.portfolio
+  const status    = delegate?.status
+  const name      = delegate?.name?.split(' ')[0] || 'Delegate'
+  const meta      = COMMITTEE_FULL_AGENDAS[committee]
+
+  // ── Transfer / refund intent ─────────────────────────────────────────────────
+  if (/transfer|give|swap|trade|refund|don'?t want|no longer|withdraw|exit|leave/.test(q)) {
+    return { type: 'TRANSFER_WIDGET' }
+  }
+
+  // ── Raise a query intent ─────────────────────────────────────────────────────
+  if (/query|complain|issue|problem|raise|contact|secr|help with|need help|support/.test(q)) {
+    return { type: 'QUERY_WIDGET' }
+  }
+
+  // ── Allotment status ─────────────────────────────────────────────────────────
+  if (/allot|status|committee|portfolio|assign|confirm|my (seat|position|role|place)/.test(q)) {
+    if (status === 'allotted' || status === 'contested') {
+      const note = status === 'contested' ? '\n\nYour allotment is flagged for manual review by the Secretariat. It will be confirmed shortly.' : ''
+      return { type: 'TEXT', text: `Your portfolio has been confirmed.\n\nCommittee: **${committee}** — ${meta?.full}\nPortfolio: **${portfolio}**\nAgenda: *${meta?.agenda}*${note}\n\n— Mozart` }
+    }
+    return { type: 'TEXT', text: `Your allotment is currently pending. The Secretariat is processing registrations and you will receive an email confirmation as soon as your portfolio is confirmed.\n\n— Mozart` }
+  }
+
+  // ── Committee agenda ─────────────────────────────────────────────────────────
+  if (/agenda|topic|discuss|debate|about (the |my )?(committee|session)|what.*committee/.test(q)) {
+    if (meta) {
+      return { type: 'TEXT', text: `**${committee} — ${meta.full}**\n\nAgenda: *${meta.agenda}*\n\n${meta.brief}\n\n— Mozart` }
+    }
+    return { type: 'TEXT', text: `Your committee assignment is pending. Once allotted, I can brief you fully on your agenda.\n\n— Mozart` }
+  }
+
+  // ── Research / preparation ───────────────────────────────────────────────────
+  if (/research|prepare|study|read|what.*know|how.*prepare|position paper|what.*expect/.test(q)) {
+    if (committee && portfolio) {
+      return { type: 'TEXT', text: `To prepare for **${committee}** as **${portfolio}**, I recommend:\n\n1. Research ${portfolio}'s historical position on: *${meta?.agenda}*\n2. Understand key alliances — who are your natural partners in this committee?\n3. Review recent developments (last 2 years) relevant to the agenda\n4. Draft a position paper outlining your stance and proposed resolutions\n5. Prepare at least 2 working papers with actionable clauses\n\n— Mozart` }
+    }
+    return { type: 'TEXT', text: `Once your portfolio is confirmed, I can give you a tailored research brief. For now, familiarise yourself with the committee structure and rules of procedure.\n\n— Mozart` }
+  }
+
+  // ── Venue / dates / logistics ────────────────────────────────────────────────
+  if (/venue|location|where|faridabad|school|address|how.*get|travel|report/.test(q)) {
+    return { type: 'TEXT', text: `Mosaic MUN II will be held at:\n\n**Saraswati Global School, Faridabad, Haryana**\n\nDates: **11–12 July 2026** (two days)\n\nFurther logistics — reporting time, schedule, dress code — will be shared via email closer to the conference.\n\n— Mozart` }
+  }
+
+  // ── Dates ────────────────────────────────────────────────────────────────────
+  if (/when|date|day|july|schedule|time|start|end|how long/.test(q)) {
+    return { type: 'TEXT', text: `Mosaic MUN II runs for **two days: 11–12 July 2026** at Saraswati Global School, Faridabad.\n\nThe full schedule will be released closer to the conference.\n\n— Mozart` }
+  }
+
+  // ── Payment / fees ───────────────────────────────────────────────────────────
+  if (/pay|fee|amount|rupee|cost|price|money|₹/.test(q)) {
+    return { type: 'TEXT', text: `Registration fees:\n\n• SGS delegates: **₹1,600**\n• External delegates: **₹2,200**\n\nPayment is made via UPI or bank transfer during registration. Your payment screenshot is submitted as part of the registration form.\n\nFor payment issues, use the **Queries** tab or contact sameer.jhamb1719@gmail.com\n\n— Mozart` }
+  }
+
+  // ── Secretariat / contact ────────────────────────────────────────────────────
+  if (/contact|email|reach|secretariat|organis|who.*run|who.*behind/.test(q)) {
+    return { type: 'TEXT', text: `The Secretariat of Mosaic MUN II can be reached at:\n\n**sameer.jhamb1719@gmail.com**\n\nFor formal queries, please use the **Queries** tab in your dashboard — responses are tracked and logged there.\n\nFor urgent matters, email directly.\n\n— Mozart` }
+  }
+
+  // ── Rules of procedure ───────────────────────────────────────────────────────
+  if (/rule|procedure|rop|motion|point of|speak|yield|caucus|amendment|resolution|clause/.test(q)) {
+    return { type: 'TEXT', text: `Mosaic MUN II follows standard United Nations rules of procedure. Key points:\n\n• Delegates speak only when recognised by the Chair\n• Motions require a seconder\n• Amendments to working papers require 2/3 majority\n• Unmoderated caucus allows informal negotiation\n• Points of Information, Order, and Personal Privilege are recognised\n\nA full RoP document will be shared before the conference.\n\n— Mozart` }
+  }
+
+  // ── ID / registration ────────────────────────────────────────────────────────
+  if (/registration id|reg id|id number|my id|reference|accredit/.test(q)) {
+    return { type: 'TEXT', text: `Your registration ID is your unique conference identifier. You will need it at the accreditation desk on the day of the conference.\n\nYou can find it displayed prominently in the **Overview** tab of your dashboard.\n\n— Mozart` }
+  }
+
+  // ── Who am I / identity ──────────────────────────────────────────────────────
+  if (/who are you|what are you|what is mozart|are you (an ai|a bot|gpt|gemini|claude|chatgpt)/.test(q)) {
+    return { type: 'TEXT', text: `I am Mozart — the official intelligence of Mosaic Model United Nations II. I was built specifically for this conference.\n\nI am not GPT, Gemini, Claude, or any other general AI. My purpose is singular: to serve you throughout Mosaic MUN II.\n\n— Mozart` }
+  }
+
+  // ── Greeting ──────────────────────────────────────────────────────────────────
+  if (/^(hi|hello|hey|sup|yo|hiya|good (morning|evening|afternoon)|howdy)[\s!?.]*$/.test(q)) {
+    return { type: 'TEXT', text: `${name}.\n\nI am at your service. Ask me about your committee, portfolio, research priorities, or the conference.\n\n— Mozart` }
+  }
+
+  // ── Thanks ────────────────────────────────────────────────────────────────────
+  if (/^(thanks?|thank you|thx|cheers|appreciated|great|awesome|perfect|brilliant)[\s!.]*$/.test(q)) {
+    return { type: 'TEXT', text: `Of course. Is there anything else you need?\n\n— Mozart` }
+  }
+
+  // ── No match → escalate to API ────────────────────────────────────────────────
+  return { type: 'API' }
+}
+
 // ── MOZART TAB ────────────────────────────────────────────────────────────────
 const MOZART_SUGGESTIONS = [
   'Brief me on my committee agenda',
   'What should I research for my portfolio?',
-  'Who else is in my committee?',
+  'Transfer my portfolio',
   'Tell me about the conference',
 ]
 
+// ── Widget: Transfer Portfolio ────────────────────────────────────────────────
+function TransferWidget({ registration, onClose, onSuccess }) {
+  const [step,        setStep]        = useState('confirm') // confirm | details | final | done
+  const [transferee,  setTransferee]  = useState({ name:'', email:'', institution:'' })
+  const [submitting,  setSubmitting]  = useState(false)
+  const [error,       setError]       = useState('')
+
+  const doTransfer = async () => {
+    if (!transferee.name.trim() || !transferee.email.trim()) { setError('Name and email are required.'); return }
+    if (!/\S+@\S+\.\S+/.test(transferee.email)) { setError('Enter a valid email address.'); return }
+    setSubmitting(true); setError('')
+    try {
+      // 1. Create new registration for transferee with same portfolio/committee
+      const newRegId = `TRF-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
+      const tempPwd  = Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,6).toUpperCase() + '!'
+
+      // Create auth account for transferee
+      const { data: authData } = await supabase.auth.admin?.createUser?.({
+        email: transferee.email.toLowerCase(), password: tempPwd, email_confirm: true,
+      }).catch(() => ({ data: null }))
+
+      // Insert new registration for transferee
+      await supabase.from('registrations').insert({
+        registration_id:   newRegId,
+        type:              registration.type,
+        full_name:         transferee.name.trim(),
+        email:             transferee.email.toLowerCase(),
+        institution:       transferee.institution.trim() || 'Transferred',
+        allocated_committee: registration.allocated_committee,
+        allocated_portfolio: registration.allocated_portfolio,
+        allocation_status:  'allotted',
+        allotment_score:    registration.allotment_score,
+        allotment_confidence: registration.allotment_confidence,
+        is_allotment_stable: true,
+        mun_count:          0,
+        committee_pref_1:   registration.allocated_committee,
+        portfolio_pref_1:   registration.allocated_portfolio,
+        user_id:            authData?.user?.id || null,
+      })
+
+      // 2. Remove allotment from original delegate
+      await supabase.from('registrations').update({
+        allocation_status:   'transferred',
+        allocated_committee: null,
+        allocated_portfolio: null,
+        updated_at:          new Date().toISOString(),
+      }).eq('id', registration.id)
+
+      // 3. Send transfer notification emails via Railway engine
+      await fetch('https://mosaic-allot-engine-production.up.railway.app/send-transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Secret': 'mosaic-mun-allot-2026' },
+        body: JSON.stringify({
+          original: {
+            name:  registration.full_name,
+            email: registration.email,
+            reg_id: registration.registration_id,
+            committee: registration.allocated_committee,
+            portfolio: registration.allocated_portfolio,
+          },
+          transferee: {
+            name:     transferee.name.trim(),
+            email:    transferee.email.toLowerCase(),
+            reg_id:   newRegId,
+            password: tempPwd,
+            committee: registration.allocated_committee,
+            portfolio: registration.allocated_portfolio,
+          },
+        }),
+      }).catch(() => {}) // non-blocking
+
+      setStep('done')
+      onSuccess?.()
+    } catch (e) {
+      setError('Transfer failed. Please try again or raise a query.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inp = (placeholder, key) => (
+    <input value={transferee[key]} onChange={e => setTransferee(t => ({...t, [key]: e.target.value}))}
+      placeholder={placeholder}
+      style={{ width:'100%', boxSizing:'border-box', background:'rgba(255,255,255,0.04)',
+        border:'1px solid rgba(200,168,78,0.25)', borderRadius:8, padding:'10px 14px',
+        color:'#f0ece2', fontSize:14, outline:'none', fontFamily:"'Poppins',sans-serif",
+        marginBottom:10 }} />
+  )
+
+  return (
+    <div style={{ background:'rgba(14,11,8,0.96)', border:'1px solid rgba(200,168,78,0.3)',
+      borderRadius:12, padding:'20px 20px', borderLeft:'3px solid #c8a84e', maxWidth:420 }}>
+      <div style={{ fontSize:'7px',letterSpacing:'0.4em',textTransform:'uppercase',color:'rgba(200,168,78,0.5)',marginBottom:10 }}>
+        PORTFOLIO TRANSFER
+      </div>
+
+      {step === 'confirm' && <>
+        <div style={{ fontSize:14,color:'#f0ece2',lineHeight:1.7,marginBottom:16,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic' }}>
+          You want to transfer your portfolio — <strong style={{fontStyle:'normal'}}>{registration?.allocated_portfolio}</strong> in <strong style={{fontStyle:'normal'}}>{registration?.allocated_committee}</strong> — to another person?<br/><br/>
+          This is <strong style={{color:'#c85050',fontStyle:'normal'}}>permanent and irreversible</strong>. You will lose your seat.
+        </div>
+        <div style={{ display:'flex',gap:10 }}>
+          <button onClick={() => setStep('details')} style={{ background:'#c8a84e',color:'#000',border:'none',padding:'9px 20px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',fontWeight:600,letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Proceed
+          </button>
+          <button onClick={onClose} style={{ background:'transparent',color:'rgba(200,168,78,0.5)',border:'1px solid rgba(200,168,78,0.2)',padding:'9px 16px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Cancel
+          </button>
+        </div>
+      </>}
+
+      {step === 'details' && <>
+        <div style={{ fontSize:13,color:'rgba(232,228,220,0.7)',marginBottom:14,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic' }}>
+          Enter the details of the person receiving the portfolio:
+        </div>
+        {inp('Full name *', 'name')}
+        {inp('Email address *', 'email')}
+        {inp('Institution (optional)', 'institution')}
+        {error && <div style={{ fontSize:11,color:'#c85050',marginBottom:8 }}>{error}</div>}
+        <div style={{ display:'flex',gap:10,marginTop:4 }}>
+          <button onClick={() => setStep('final')} style={{ background:'#c8a84e',color:'#000',border:'none',padding:'9px 20px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',fontWeight:600,letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Review →
+          </button>
+          <button onClick={() => setStep('confirm')} style={{ background:'transparent',color:'rgba(200,168,78,0.5)',border:'1px solid rgba(200,168,78,0.2)',padding:'9px 16px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Back
+          </button>
+        </div>
+      </>}
+
+      {step === 'final' && <>
+        <div style={{ fontSize:13,color:'rgba(232,228,220,0.8)',lineHeight:1.8,marginBottom:16,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic' }}>
+          Confirm this transfer:<br/>
+          <strong style={{color:'#c8a84e',fontStyle:'normal'}}>{transferee.name}</strong> ({transferee.email})<br/>
+          will receive <strong style={{fontStyle:'normal'}}>{registration?.allocated_portfolio}</strong> in <strong style={{fontStyle:'normal'}}>{registration?.allocated_committee}</strong>.<br/><br/>
+          <span style={{color:'#c85050'}}>This action cannot be undone.</span>
+        </div>
+        {error && <div style={{ fontSize:11,color:'#c85050',marginBottom:8 }}>{error}</div>}
+        <div style={{ display:'flex',gap:10 }}>
+          <button onClick={doTransfer} disabled={submitting}
+            style={{ background:'#c85050',color:'#fff',border:'none',padding:'9px 20px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',fontWeight:600,letterSpacing:'0.28em',textTransform:'uppercase',cursor:submitting?'default':'pointer',opacity:submitting?0.5:1 }}>
+            {submitting ? 'Transferring...' : 'Confirm Transfer'}
+          </button>
+          <button onClick={() => setStep('details')} style={{ background:'transparent',color:'rgba(200,168,78,0.5)',border:'1px solid rgba(200,168,78,0.2)',padding:'9px 16px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Edit
+          </button>
+        </div>
+      </>}
+
+      {step === 'done' && (
+        <div style={{ fontSize:14,color:'rgba(80,200,120,0.9)',lineHeight:1.7,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic' }}>
+          ✓ Transfer complete.<br/><br/>
+          {transferee.name} has been notified at <strong style={{fontStyle:'normal'}}>{transferee.email}</strong> with their portfolio details and account credentials.<br/><br/>
+          You have been notified that your portfolio has been transferred.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Widget: Raise Query ────────────────────────────────────────────────────────
+function QueryWidget({ registration, userId, onClose }) {
+  const [subject,    setSubject]    = useState('')
+  const [message,    setMessage]    = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [done,       setDone]       = useState(false)
+  const [error,      setError]      = useState('')
+
+  const submit = async () => {
+    if (!subject.trim() || !message.trim()) { setError('Both fields are required.'); return }
+    setSubmitting(true); setError('')
+    try {
+      const { error: err } = await supabase.from('queries').insert({
+        user_id: userId, registration_id: registration?.registration_id,
+        subject: subject.trim(), message: message.trim(), status: 'open',
+      })
+      if (err) throw err
+      setDone(true)
+    } catch { setError('Failed to submit. Please try the Queries tab.') }
+    finally { setSubmitting(false) }
+  }
+
+  return (
+    <div style={{ background:'rgba(14,11,8,0.96)', border:'1px solid rgba(200,168,78,0.3)',
+      borderRadius:12, padding:'20px 20px', borderLeft:'3px solid #c8a84e', maxWidth:420 }}>
+      <div style={{ fontSize:'7px',letterSpacing:'0.4em',textTransform:'uppercase',color:'rgba(200,168,78,0.5)',marginBottom:10 }}>
+        RAISE A QUERY
+      </div>
+      {!done ? <>
+        <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Subject *"
+          style={{ width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(200,168,78,0.25)',borderRadius:8,padding:'10px 14px',color:'#f0ece2',fontSize:14,outline:'none',fontFamily:"'Poppins',sans-serif",marginBottom:10 }} />
+        <textarea value={message} onChange={e=>setMessage(e.target.value)} rows={3} placeholder="Describe your issue *"
+          style={{ width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(200,168,78,0.25)',borderRadius:8,padding:'10px 14px',color:'#f0ece2',fontSize:14,outline:'none',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',resize:'none',lineHeight:1.65,marginBottom:10 }} />
+        {error && <div style={{ fontSize:11,color:'#c85050',marginBottom:8 }}>{error}</div>}
+        <div style={{ display:'flex',gap:10 }}>
+          <button onClick={submit} disabled={submitting} style={{ background:'#c8a84e',color:'#000',border:'none',padding:'9px 20px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',fontWeight:600,letterSpacing:'0.28em',textTransform:'uppercase',cursor:submitting?'default':'pointer',opacity:submitting?0.5:1 }}>
+            {submitting?'Submitting...':'Submit to Secretariat'}
+          </button>
+          <button onClick={onClose} style={{ background:'transparent',color:'rgba(200,168,78,0.5)',border:'1px solid rgba(200,168,78,0.2)',padding:'9px 16px',borderRadius:6,fontFamily:"'Poppins',sans-serif",fontSize:'8px',letterSpacing:'0.28em',textTransform:'uppercase',cursor:'pointer' }}>
+            Cancel
+          </button>
+        </div>
+      </> : (
+        <div style={{ fontSize:14,color:'rgba(80,200,120,0.9)',lineHeight:1.7,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic' }}>
+          ✓ Query submitted to the Secretariat.<br/>You can track responses in the <strong style={{fontStyle:'normal'}}>Queries</strong> tab.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Render markdown-ish bold text ─────────────────────────────────────────────
+function MozartText({ text }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (p.startsWith('**') && p.endsWith('**'))
+          return <strong key={i} style={{ fontWeight:700, fontStyle:'normal', color:'#f0ece2' }}>{p.slice(2,-2)}</strong>
+        if (p.startsWith('*') && p.endsWith('*'))
+          return <em key={i}>{p.slice(1,-1)}</em>
+        return <span key={i}>{p}</span>
+      })}
+    </>
+  )
+}
+
 function MozartTab({ registration }) {
+  const { user } = useAuth()
   const [messages, setMessages] = useState([{
     role: 'mozart',
     text: `I am Mozart — the intelligence of Mosaic MUN II.\n\nI know your delegation, your committee's agenda, and everything about this conference. Ask me anything.\n\n— Mozart`,
@@ -230,12 +562,46 @@ function MozartTab({ registration }) {
     setTimeout(tick, 14)
   }, [])
 
+  const addMozartMsg = useCallback((text) => {
+    setMessages(m => [...m, { role: 'mozart', text, ts: Date.now() }])
+  }, [])
+
   const send = async (msgOverride) => {
     const msg = (msgOverride || input).trim()
     if (!msg || loading) return
     setInput('')
     setShowSuggest(false)
-    setMessages(m => [...m, { role: 'user', text: msg, ts: Date.now() }])
+    const userMsg = { role: 'user', text: msg, ts: Date.now() }
+    setMessages(m => [...m, userMsg])
+
+    // ── Local intelligence first — no API call ────────────────────────────────
+    const local = localIntelligence(msg, delegate)
+
+    if (local.type === 'TRANSFER_WIDGET') {
+      if (!delegate.committee || !delegate.portfolio) {
+        setMessages(m => [...m, { role: 'mozart', text: 'Your portfolio has not been allotted yet. Once you have a portfolio assigned, you can transfer it.\n\n— Mozart', ts: Date.now() }])
+        return
+      }
+      setMessages(m => [...m, { role: 'widget', widget: 'TRANSFER', ts: Date.now() }])
+      return
+    }
+
+    if (local.type === 'QUERY_WIDGET') {
+      setMessages(m => [...m, { role: 'mozart', text: 'I\'ll open a query form for you. Fill in the details and the Secretariat will respond directly.\n\n— Mozart', ts: Date.now() }])
+      setTimeout(() => setMessages(m => [...m, { role: 'widget', widget: 'QUERY', ts: Date.now() }]), 400)
+      return
+    }
+
+    if (local.type === 'TEXT') {
+      setLoading(true)
+      setTimeout(() => {
+        setLoading(false)
+        typewrite(local.text, full => addMozartMsg(full))
+      }, 350 + Math.random() * 300) // slight delay feels natural
+      return
+    }
+
+    // ── Fallback: call API ────────────────────────────────────────────────────
     setLoading(true)
     try {
       const r = await fetch('/api/mozart', {
@@ -246,10 +612,10 @@ function MozartTab({ registration }) {
       const data = await r.json()
       const reply = data.reply || 'I encountered an issue. Please try again.\n\n— Mozart'
       setLoading(false)
-      typewrite(reply, full => setMessages(m => [...m, { role: 'mozart', text: full, ts: Date.now() }]))
+      typewrite(reply, full => addMozartMsg(full))
     } catch {
       setLoading(false)
-      setMessages(m => [...m, { role: 'mozart', text: 'I encountered an issue. Please try again.\n\n— Mozart', ts: Date.now() }])
+      addMozartMsg('I encountered an issue. Please try again.\n\n— Mozart')
     }
   }
 
@@ -328,7 +694,30 @@ function MozartTab({ registration }) {
         )}
 
         <AnimatePresence initial={false}>
-          {messages.map((m, i) => (
+          {messages.map((m, i) => {
+            // ── Widget messages ───────────────────────────────────────────────
+            if (m.role === 'widget') {
+              return (
+                <motion.div key={i} initial={{ opacity:0,y:12,scale:0.98 }} animate={{ opacity:1,y:0,scale:1 }}
+                  transition={{ duration:0.38,ease:[0.22,1,0.36,1] }}
+                  style={{ alignSelf:'flex-start', maxWidth:'min(92%,480px)' }}>
+                  {m.widget === 'TRANSFER' && (
+                    <TransferWidget registration={registration}
+                      onClose={() => setMessages(ms => ms.filter((_,j) => j !== i))}
+                      onSuccess={() => addMozartMsg('Transfer complete. The Secretariat has been notified and both parties will receive email confirmations.\n\n— Mozart')}
+                    />
+                  )}
+                  {m.widget === 'QUERY' && (
+                    <QueryWidget registration={registration} userId={user?.id}
+                      onClose={() => setMessages(ms => ms.filter((_,j) => j !== i))}
+                    />
+                  )}
+                </motion.div>
+              )
+            }
+
+            // ── Normal text messages ──────────────────────────────────────────
+            return (
             <motion.div key={i}
               initial={{ opacity:0, y:12, scale:0.98 }}
               animate={{ opacity:1, y:0, scale:1 }}
@@ -382,7 +771,7 @@ function MozartTab({ registration }) {
                   backdropFilter: m.role==='mozart' ? 'blur(8px)' : undefined,
                   boxShadow: m.role==='mozart' ? '0 4px 24px rgba(0,0,0,0.25)' : '0 2px 12px rgba(200,168,78,0.08)',
                 }}>
-                  {m.text}
+                  {m.role === 'mozart' ? <MozartText text={m.text} /> : m.text}
                 </div>
 
                 {/* Timestamp */}
@@ -392,7 +781,8 @@ function MozartTab({ registration }) {
                 </div>
               </div>
             </motion.div>
-          ))}
+            )
+          })}
 
           {/* Typewriter bubble */}
           {displayedLast && (
