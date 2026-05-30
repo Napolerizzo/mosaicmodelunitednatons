@@ -12,8 +12,9 @@ import { sendAllotmentEmail, sendWaitlistEmail } from './email.ts'
 import { appendToSheet } from './sheets.ts'
 import { copyFilesToDrive } from './drive.ts'
 
-const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!
-const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+// Supabase auto-injects these two — no need to set them as secrets
+const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 Deno.serve(async (req: Request) => {
   // Accept POST only

@@ -1,35 +1,48 @@
-// Google Drive API v3 — copies uploaded files from Supabase Storage to Google Drive folder
+// Google Drive API v3 — copies uploaded files from Supabase Storage to Google Drive
 
-async function getDriveToken(serviceAccountJson: string): Promise<string> {
-  const sa = JSON.parse(serviceAccountJson)
+function base64url(input: string | Uint8Array): string {
+  const str = typeof input === 'string' ? btoa(input) : btoa(String.fromCharCode(...input))
+  return str.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+async function buildJwt(clientEmail: string, privateKeyPem: string, scope: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
 
-  const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  const claim = btoa(JSON.stringify({
-    iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/drive.file',
+  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
+  const claim  = base64url(JSON.stringify({
+    iss: clientEmail, scope,
     aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-
+    exp: now + 3600, iat: now,
+  }))
   const unsigned = `${header}.${claim}`
-  const pemBody = (sa.private_key as string).replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '')
+
+  const pemBody = privateKeyPem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n|\r/g, '')
   const keyBytes = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0))
   const cryptoKey = await crypto.subtle.importKey(
     'pkcs8', keyBytes,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false, ['sign']
   )
-  const sigBytes = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(unsigned))
-  const signature = btoa(String.fromCharCode(...new Uint8Array(sigBytes))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  const sigBytes = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(unsigned)
+  )
+  return `${unsigned}.${base64url(String.fromCharCode(...new Uint8Array(sigBytes)))}`
+}
 
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+async function getDriveToken(): Promise<string | null> {
+  const clientEmail = Deno.env.get('GOOGLE_CLIENT_EMAIL')
+  const privateKey  = Deno.env.get('GOOGLE_PRIVATE_KEY')
+  if (!clientEmail || !privateKey) return null
+
+  const pem = privateKey.replace(/\\n/g, '\n')
+  const jwt = await buildJwt(clientEmail, pem, 'https://www.googleapis.com/auth/drive.file')
+
+  const res  = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${unsigned}.${signature}`,
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
   })
-  return (await tokenRes.json()).access_token as string
+  return (await res.json()).access_token as string ?? null
 }
 
 export async function copyFilesToDrive(params: {
@@ -38,48 +51,40 @@ export async function copyFilesToDrive(params: {
   supabaseUrl: string
   supabaseServiceRoleKey: string
 }): Promise<void> {
-  const saJson      = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-  const folderId    = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
+  const folderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
+  if (!folderId) { console.warn('GOOGLE_DRIVE_FOLDER_ID not set — skipping Drive sync'); return }
 
-  if (!saJson || !folderId) {
-    console.warn('Google Drive env vars not configured — skipping Drive sync')
-    return
-  }
+  const token = await getDriveToken()
+  if (!token) { console.warn('Could not get Drive token — skipping Drive sync'); return }
 
-  try {
-    const token = await getDriveToken(saJson)
+  for (const { path, label } of params.supabaseStoragePaths) {
+    if (!path) continue
+    const ext = path.split('.').pop() ?? 'bin'
+    const fileName = `${params.registrationId}_${label}.${ext}`
 
-    for (const { path, label } of params.supabaseStoragePaths) {
-      if (!path) continue
-      const ext = path.split('.').pop() ?? 'bin'
-      const fileName = `${params.registrationId}_${label}.${ext}`
-
-      // Download from Supabase Storage using service role key
-      const downloadUrl = `${params.supabaseUrl}/storage/v1/object/registration-files/${path}`
-      const fileRes = await fetch(downloadUrl, {
+    try {
+      // Download from Supabase Storage
+      const dlUrl = `${params.supabaseUrl}/storage/v1/object/registration-files/${path}`
+      const fileRes = await fetch(dlUrl, {
         headers: { Authorization: `Bearer ${params.supabaseServiceRoleKey}` },
       })
-      if (!fileRes.ok) { console.warn(`Could not download ${path}`); continue }
+      if (!fileRes.ok) { console.warn(`Could not download ${path}: ${fileRes.status}`); continue }
 
-      const fileBytes = await fileRes.arrayBuffer()
+      const fileBytes  = await fileRes.arrayBuffer()
       const contentType = fileRes.headers.get('content-type') ?? 'application/octet-stream'
 
       // Multipart upload to Google Drive
-      const boundary = '----MosaicMUNBoundary'
-      const metadata = JSON.stringify({ name: fileName, parents: [folderId] })
-      const metaPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`
-      const filePart = `--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`
-      const closing  = `\r\n--${boundary}--`
-
-      const enc = new TextEncoder()
-      const body = new Uint8Array([
-        ...enc.encode(metaPart),
-        ...enc.encode(filePart),
+      const boundary = 'MosaicMUNBoundary'
+      const meta     = JSON.stringify({ name: fileName, parents: [folderId] })
+      const enc      = new TextEncoder()
+      const body     = new Uint8Array([
+        ...enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`),
+        ...enc.encode(`--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`),
         ...new Uint8Array(fileBytes),
-        ...enc.encode(closing),
+        ...enc.encode(`\r\n--${boundary}--`),
       ])
 
-      const uploadRes = await fetch(
+      const upRes = await fetch(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
         {
           method: 'POST',
@@ -90,11 +95,9 @@ export async function copyFilesToDrive(params: {
           body,
         }
       )
-      if (!uploadRes.ok) {
-        console.error('Drive upload failed:', await uploadRes.text())
-      }
+      if (!upRes.ok) console.error('Drive upload failed for', fileName, await upRes.text())
+    } catch (e) {
+      console.error('Drive upload error for', fileName, e)
     }
-  } catch (e) {
-    console.error('copyFilesToDrive failed:', e)
   }
 }
