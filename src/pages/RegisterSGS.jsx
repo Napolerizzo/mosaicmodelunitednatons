@@ -864,14 +864,16 @@ export default function RegisterSGS() {
     if (!validate()) return
     setSubmitting(true)
     try {
-      const tempId = `temp-${Date.now()}`
+      // Generate registration_id client-side so credential screen works without a SELECT
+      const regId = `SGS-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
       let idCardPath = null
       let paymentPath = null
 
-      if (form.id_card)             idCardPath  = await uploadFile(form.id_card, tempId, 'id_card')
-      if (form.payment_screenshot)  paymentPath = await uploadFile(form.payment_screenshot, tempId, 'payment')
+      if (form.id_card)            idCardPath  = await uploadFile(form.id_card, regId, 'id_card')
+      if (form.payment_screenshot) paymentPath = await uploadFile(form.payment_screenshot, regId, 'payment')
 
-      const { data, error } = await supabase.from('registrations').insert({
+      const { error } = await supabase.from('registrations').insert({
+        registration_id:  regId,
         type: 'sgs',
         full_name:        form.full_name.trim(),
         institution:      'Saraswati Global School',
@@ -887,10 +889,17 @@ export default function RegisterSGS() {
         portfolio_pref_3: form.portfolio_pref_3.trim() || null,
         id_card_url:             idCardPath,
         payment_screenshot_url:  paymentPath,
-      }).select().single()
+      })
 
       if (error) throw error
-      setRegistration(data)
+
+      // Build credential from local state — no SELECT needed (avoids RLS on anon reads)
+      setRegistration({
+        registration_id: regId,
+        full_name: form.full_name.trim(),
+        email: form.email.trim().toLowerCase(),
+        institution: 'Saraswati Global School',
+      })
 
       fireStamp('ACCREDITATION ISSUED', () => {
         setDir(1)

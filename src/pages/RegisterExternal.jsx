@@ -439,11 +439,13 @@ export default function RegisterExternal() {
     if (!validate()) return
     setSubmitting(true)
     try {
-      const tempId = `temp-ext-${Date.now()}`
+      // Generate registration_id client-side so credential screen works without a SELECT
+      const regId = `EXT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
       let paymentPath = null
-      if (form.payment_screenshot) paymentPath = await uploadFile(form.payment_screenshot, tempId, 'payment')
+      if (form.payment_screenshot) paymentPath = await uploadFile(form.payment_screenshot, regId, 'payment')
 
-      const { data, error } = await supabase.from('registrations').insert({
+      const { error } = await supabase.from('registrations').insert({
+        registration_id:  regId,
         type: 'external',
         full_name:        form.full_name.trim(),
         email:            form.email.trim().toLowerCase(),
@@ -463,10 +465,17 @@ export default function RegisterExternal() {
         portfolio_pref_2: form.portfolio_pref_2.trim() || null,
         portfolio_pref_3: form.portfolio_pref_3.trim() || null,
         payment_screenshot_url: paymentPath,
-      }).select().single()
+      })
 
       if (error) throw error
-      setRegistration(data)
+
+      // Build credential from local state — no SELECT needed (avoids RLS on anon reads)
+      setRegistration({
+        registration_id: regId,
+        full_name: form.full_name.trim(),
+        email: form.email.trim().toLowerCase(),
+        institution: form.institution.trim(),
+      })
 
       fireStamp('ACCREDITATION ISSUED', () => {
         setDir(1)
