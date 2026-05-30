@@ -81,7 +81,7 @@ const MAX_PREFS          = 3
 const FUZZY_THRESHOLD    = 80
 const JARO_THRESHOLD     = 0.75
 const INFINITE_COST      = 1e9
-const MONTE_CARLO_RUNS   = 100    // reduced from 1000 for Edge Function timeout
+const MONTE_CARLO_RUNS   = 50     // 50 is safe for 350 delegates within 60s Edge Function timeout
 const CONTESTED_THRESHOLD = 0.15
 const PREF_RANK_SCORES: Record<number, number> = { 1: 1.0, 2: 0.6, 3: 0.3 }
 

@@ -74,8 +74,8 @@ Deno.serve(async (req: Request) => {
     for (let order = 0; order < (rawDelegates ?? []).length; order++) {
       const r: any = rawDelegates![order]
 
-      // Skip already-allotted delegates
-      if (r.allocation_status === 'allotted') continue
+      // Never re-process delegates who already have a confirmed allocation
+      if (['allotted', 'contested'].includes(r.allocation_status)) continue
 
       const email = (r.email ?? '').toLowerCase().trim()
       let is_duplicate = false
